@@ -5,6 +5,7 @@ import { useRider } from "@/lib/rider-context";
 import { useOrders } from "@/lib/orders-context";
 import { PoolList } from "@/components/orders/PoolList";
 import { ActiveOrderCard } from "@/components/orders/ActiveOrderCard";
+import { LocationPermissionBanner } from "@/components/LocationPermissionBanner";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — HappyRider" }] }),
@@ -18,6 +19,7 @@ function RiderDashboard() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
+      <LocationPermissionBanner />
       {rider && !rider.is_approved && (
         <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
           ⏳ บัญชีของคุณรอแอดมินอนุมัติ — รับงานจริงไม่ได้จนกว่าจะอนุมัติ
