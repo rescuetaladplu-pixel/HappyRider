@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { RiderProvider, useRider } from "@/lib/rider-context";
+import { OrdersProvider } from "@/lib/orders-context";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
@@ -55,7 +56,9 @@ function AuthenticatedLayout() {
 
   return (
     <RiderProvider>
-      <RiderShell signOut={signOut} email={user.email ?? ""} />
+      <OrdersProvider>
+        <RiderShell signOut={signOut} email={user.email ?? ""} />
+      </OrdersProvider>
     </RiderProvider>
   );
 }
