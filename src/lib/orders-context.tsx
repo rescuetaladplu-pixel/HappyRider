@@ -54,6 +54,7 @@ interface OrdersContextValue {
     orderId: string,
     from: "picked_up" | "delivering",
     to: "delivering" | "delivered",
+    otp?: string,
   ) => Promise<boolean>;
   refresh: () => Promise<void>;
 }
