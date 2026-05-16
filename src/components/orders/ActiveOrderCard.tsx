@@ -104,12 +104,39 @@ export function ActiveOrderCard({ order }: { order: OrderRow }) {
         </div>
       </div>
 
-      <Button className="mt-4 w-full" onClick={handleNext} disabled={busy}>
+      {order.status === "delivering" && (
+        <div className="mt-4 rounded-lg border bg-muted/30 p-3">
+          <div className="mb-2 text-sm font-medium">
+            กรอก OTP 4 หลักจากลูกค้า
+          </div>
+          <InputOTP
+            maxLength={4}
+            value={otp}
+            onChange={(v) => setOtp(v.replace(/\D/g, ""))}
+            inputMode="numeric"
+          >
+            <InputOTPGroup>
+              <InputOTPSlot index={0} />
+              <InputOTPSlot index={1} />
+              <InputOTPSlot index={2} />
+              <InputOTPSlot index={3} />
+            </InputOTPGroup>
+          </InputOTP>
+        </div>
+      )}
+
+      <Button
+        className="mt-4 w-full"
+        onClick={handleNext}
+        disabled={
+          busy || (order.status === "delivering" && otp.length !== 4)
+        }
+      >
         {busy
           ? "กำลังอัปเดต..."
           : order.status === "picked_up"
             ? "เริ่มส่ง"
-            : "ส่งสำเร็จ"}
+            : "ยืนยันส่งสำเร็จ"}
       </Button>
     </div>
   );
