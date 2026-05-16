@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as RiderDashboardRouteImport } from './routes/rider-dashboard'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -20,6 +21,11 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiderDashboardRoute = RiderDashboardRouteImport.update({
+  id: '/rider-dashboard',
+  path: '/rider-dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/rider-dashboard': typeof RiderDashboardRoute
   '/signup': typeof SignupRoute
   '/profile': typeof AuthenticatedProfileRoute
 }
@@ -64,6 +71,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/rider-dashboard': typeof RiderDashboardRoute
   '/signup': typeof SignupRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/': typeof AuthenticatedIndexRoute
@@ -74,6 +82,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/rider-dashboard': typeof RiderDashboardRoute
   '/signup': typeof SignupRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/rider-dashboard'
     | '/signup'
     | '/profile'
   fileRoutesByTo: FileRoutesByTo
@@ -92,6 +102,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/rider-dashboard'
     | '/signup'
     | '/profile'
     | '/'
@@ -101,6 +112,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/rider-dashboard'
     | '/signup'
     | '/_authenticated/profile'
     | '/_authenticated/'
@@ -111,6 +123,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RiderDashboardRoute: typeof RiderDashboardRoute
   SignupRoute: typeof SignupRoute
 }
 
@@ -121,6 +134,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rider-dashboard': {
+      id: '/rider-dashboard'
+      path: '/rider-dashboard'
+      fullPath: '/rider-dashboard'
+      preLoaderRoute: typeof RiderDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -187,6 +207,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  RiderDashboardRoute: RiderDashboardRoute,
   SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
