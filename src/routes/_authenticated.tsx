@@ -27,6 +27,19 @@ function AuthenticatedLayout() {
     if (roles.length > 0 && !isRider) {
       toast.error("บัญชีนี้ไม่ใช่ rider");
       supabase.auth.signOut().then(() => navigate({ to: "/login" }));
+      return;
+    }
+    // Ensure a riders row exists for this user (fallback when signup couldn't
+    // insert due to no session yet from email-confirm flow).
+    if (isRider) {
+      supabase
+        .from("riders")
+        .upsert({ id: user.id }, { onConflict: "id", ignoreDuplicates: true })
+        .then(({ error }) => {
+          if (error && !error.message.toLowerCase().includes("duplicate")) {
+            console.warn("riders upsert failed:", error.message);
+          }
+        });
     }
   }, [user, loading, isRider, roles, navigate]);
 
