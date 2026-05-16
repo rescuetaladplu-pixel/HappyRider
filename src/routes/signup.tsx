@@ -38,7 +38,8 @@ function SignupPage() {
       options: {
         emailRedirectTo: `${window.location.origin}/login`,
         data: {
-          full_name: `${firstName} ${lastName}`,
+          first_name: firstName,
+          last_name: lastName,
           phone,
           role: "rider",
         },
@@ -82,8 +83,8 @@ function SignupPage() {
 
     setLoading(false);
     toast.success(
-      "สมัครสำเร็จ! กรุณาเช็คอีเมลเพื่อยืนยันบัญชีก่อนเข้าสู่ระบบ",
-      { duration: 6000 },
+      "สมัครสำเร็จ! อีเมลยืนยันจะส่งมาจาก HappyEat (ใช้ระบบเดียวกัน) กรุณาเช็คกล่องจดหมาย และ Spam folder ด้วย",
+      { duration: 10000 },
     );
     navigate({ to: "/login" });
   };
@@ -165,6 +166,10 @@ function SignupPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "กำลังสมัคร..." : "สมัคร"}
             </Button>
+            <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              📧 หมายเหตุ: อีเมลยืนยันจะส่งมาจากชื่อผู้ส่ง <strong>HappyEat</strong> (HappyRider ใช้ระบบ
+              backend เดียวกันกับ HappyEat) กรุณาเช็คกล่องจดหมายและ Spam folder ด้วย
+            </p>
             <div className="text-center text-sm text-muted-foreground">
               มีบัญชีแล้ว?{" "}
               <Link to="/login" className="underline">

@@ -2,6 +2,7 @@ import {
   createFileRoute,
   Outlet,
   useNavigate,
+  useLocation,
   Link,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
@@ -9,6 +10,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { RiderProvider, useRider } from "@/lib/rider-context";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
@@ -29,8 +33,6 @@ function AuthenticatedLayout() {
       supabase.auth.signOut().then(() => navigate({ to: "/login" }));
       return;
     }
-    // Ensure a riders row exists for this user (fallback when signup couldn't
-    // insert due to no session yet from email-confirm flow).
     if (isRider) {
       supabase
         .from("riders")
@@ -52,14 +54,69 @@ function AuthenticatedLayout() {
   }
 
   return (
+    <RiderProvider>
+      <RiderShell signOut={signOut} email={user.email ?? ""} />
+    </RiderProvider>
+  );
+}
+
+function RiderShell({
+  signOut,
+  email,
+}: {
+  signOut: () => Promise<void>;
+  email: string;
+}) {
+  const { rider, isProfileComplete, loading, toggleOnline } = useRider();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Force profile completion before using the app
+  useEffect(() => {
+    if (loading) return;
+    if (!isProfileComplete && location.pathname !== "/profile") {
+      toast("กรุณากรอกโปรไฟล์ให้ครบก่อนใช้งาน");
+      navigate({ to: "/profile" });
+    }
+  }, [loading, isProfileComplete, location.pathname, navigate]);
+
+  return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="font-semibold">
             HappyRider
           </Link>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-muted-foreground">{user.email}</span>
+
+          <div className="flex items-center gap-4 text-sm">
+            {rider && isProfileComplete && (
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="online-toggle"
+                  checked={rider.is_online}
+                  onCheckedChange={() => void toggleOnline()}
+                />
+                <Label
+                  htmlFor="online-toggle"
+                  className={
+                    rider.is_online
+                      ? "font-medium text-green-600"
+                      : "text-muted-foreground"
+                  }
+                >
+                  {rider.is_online ? "ออนไลน์" : "ออฟไลน์"}
+                </Label>
+              </div>
+            )}
+            <Link
+              to="/profile"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              โปรไฟล์
+            </Link>
+            <span className="hidden text-muted-foreground sm:inline">
+              {email}
+            </span>
             <Button
               variant="outline"
               size="sm"
