@@ -20,6 +20,7 @@ function mapsLink(lat: number | null, lng: number | null, fallback?: string | nu
 export function ActiveOrderCard({ order }: { order: OrderRow }) {
   const { advance } = useOrders();
   const [busy, setBusy] = useState(false);
+  const [otp, setOtp] = useState("");
 
   const restoLink = mapsLink(
     order.restaurants?.latitude ?? null,
@@ -35,7 +36,8 @@ export function ActiveOrderCard({ order }: { order: OrderRow }) {
     if (order.status === "picked_up") {
       await advance(order.id, "picked_up", "delivering");
     } else if (order.status === "delivering") {
-      await advance(order.id, "delivering", "delivered");
+      const ok = await advance(order.id, "delivering", "delivered", otp);
+      if (ok) setOtp("");
     }
     setBusy(false);
   };
