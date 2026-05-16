@@ -263,10 +263,6 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     },
     [user, fetchActive],
   );
-
-  const lastBeepRef = useRef(0);
-  void lastBeepRef;
-
   return (
     <OrdersContext.Provider
       value={{ pool, active, loading, claim, advance, refresh }}
