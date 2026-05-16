@@ -47,7 +47,22 @@ function SignupPage() {
 
     if (error) {
       setLoading(false);
-      toast.error(error.message);
+      const msg = error.message.toLowerCase();
+      let thai = error.message;
+      if (msg.includes("weak") || msg.includes("password")) {
+        if (msg.includes("at least") || msg.includes("6") || msg.includes("short")) {
+          thai = "รหัสผ่านสั้นเกินไป (อย่างน้อย 6 ตัวอักษร)";
+        } else {
+          thai = "รหัสผ่านไม่ปลอดภัย กรุณาใช้รหัสที่ซับซ้อนกว่านี้ (ผสมตัวอักษร ตัวเลข และสัญลักษณ์)";
+        }
+      } else if (msg.includes("already registered") || msg.includes("already exists") || msg.includes("user already")) {
+        thai = "อีเมลนี้ถูกใช้สมัครไปแล้ว";
+      } else if (msg.includes("invalid email")) {
+        thai = "รูปแบบอีเมลไม่ถูกต้อง";
+      } else if (msg.includes("rate limit")) {
+        thai = "ลองสมัครบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่";
+      }
+      toast.error(thai);
       return;
     }
 
