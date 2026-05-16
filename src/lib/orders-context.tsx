@@ -31,6 +31,7 @@ export interface OrderRow {
   subtotal: number | null;
   delivery_fee: number | null;
   notes: string | null;
+  delivery_otp: string | null;
   created_at: string;
   restaurants: RestaurantRef | null;
 }
@@ -38,7 +39,7 @@ export interface OrderRow {
 const SELECT = `
   id, restaurant_id, rider_id, status,
   delivery_address, delivery_lat, delivery_lng,
-  subtotal, delivery_fee, notes, created_at,
+  subtotal, delivery_fee, notes, delivery_otp, created_at,
   restaurants(name, address, latitude, longitude, phone)
 `;
 
@@ -53,6 +54,7 @@ interface OrdersContextValue {
     orderId: string,
     from: "picked_up" | "delivering",
     to: "delivering" | "delivered",
+    otp?: string,
   ) => Promise<boolean>;
   refresh: () => Promise<void>;
 }
@@ -232,8 +234,30 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       orderId: string,
       from: "picked_up" | "delivering",
       to: "delivering" | "delivered",
+      otp?: string,
     ) => {
       if (!user) return false;
+      if (to === "delivered") {
+        const code = (otp ?? "").trim();
+        if (!/^\d{4}$/.test(code)) {
+          toast.error("กรุณากรอก OTP 4 หลัก");
+          return false;
+        }
+        const { data: row, error: readErr } = await supabase
+          .from("orders")
+          .select("delivery_otp")
+          .eq("id", orderId)
+          .eq("rider_id", user.id)
+          .maybeSingle();
+        if (readErr || !row) {
+          toast.error("ไม่พบออเดอร์");
+          return false;
+        }
+        if (!row.delivery_otp || row.delivery_otp !== code) {
+          toast.error("OTP ไม่ถูกต้อง");
+          return false;
+        }
+      }
       const { data, error } = await supabase
         .from("orders")
         .update({ status: to })
