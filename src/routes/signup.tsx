@@ -14,14 +14,22 @@ export const Route = createFileRoute("/signup")({
 
 function SignupPage() {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast.error("รหัสผ่านไม่ตรงกัน");
+      return;
+    }
+
     setLoading(true);
 
     const { data, error } = await supabase.auth.signUp({
@@ -30,7 +38,7 @@ function SignupPage() {
       options: {
         emailRedirectTo: `${window.location.origin}/login`,
         data: {
-          full_name: fullName,
+          full_name: `${firstName} ${lastName}`,
           phone,
           role: "rider",
         },
@@ -73,14 +81,25 @@ function SignupPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="full_name">ชื่อ-นามสกุล</Label>
-              <Input
-                id="full_name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="first_name">ชื่อ</Label>
+                <Input
+                  id="first_name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last_name">นามสกุล</Label>
+                <Input
+                  id="last_name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">เบอร์โทร</Label>
@@ -111,6 +130,18 @@ function SignupPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm_password">ยืนยันรหัสผ่าน</Label>
+              <Input
+                id="confirm_password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={6}
                 autoComplete="new-password"
