@@ -5,6 +5,7 @@ import { useRider } from "@/lib/rider-context";
 import { useOrders } from "@/lib/orders-context";
 import { PoolList } from "@/components/orders/PoolList";
 import { ActiveOrderCard } from "@/components/orders/ActiveOrderCard";
+import { LocationPermissionBanner } from "@/components/LocationPermissionBanner";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — HappyRider" }] }),
