@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useRider } from "@/lib/rider-context";
 import { playBeep } from "@/lib/notification-sound";
+import { sendStatusPush } from "@/lib/fcm.functions";
 
 export interface RestaurantRef {
   name: string | null;
