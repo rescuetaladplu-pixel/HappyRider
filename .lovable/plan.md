@@ -1,122 +1,66 @@
+## สรุปสั้น
 
-# Phase 3 — Rider Job Pool + Active Orders
+ฝั่ง happyeat ใช้ **Leaflet + OpenStreetMap** (ฟรี, ไม่ต้อง API key) — ใช้สแตกเดียวกันที่ HappyRider จะดีที่สุด เพราะ:
+- ไม่ต้องตั้ง billing / API key อะไรเลย
+- ลูกค้าและร้านในฝั่ง happyeat เห็นแผนที่หน้าตาเดียวกัน → brand consistent
+- ระบบ tracking GPS ของไรเดอร์มีอยู่แล้ว (`riders.current_lat/lng` อัปเดตทุก 10 วินาที / 30 เมตร ผ่าน `watchPosition`) — แค่เอามาแสดงบนแผนที่
 
-อ้างอิง SHARED_CONTRACT.md (happyeat) sections 3–6. ไม่มี migration ในห้องนี้, ไม่แตะ schema, ไม่แตะ tables อื่นนอก `orders` + `riders`.
+## สิ่งที่จะเพิ่ม
 
-## โครงสร้างหน้า
+แผนที่ขนาดสูง ~280px ติดอยู่ด้านบนของหน้า dashboard `/` เหนือแท็บ "งานที่รับได้ / งานที่ทำอยู่" — หมุดสีเขียวขยับตามตำแหน่งจริงของไรเดอร์เรียลไทม์ พร้อมปุ่ม "📍 ตรงกลาง" ให้กลับมาที่ตำแหน่งตัวเอง
 
-แท็บใน dashboard `/` แทน placeholder ปัจจุบัน:
-- **งานที่รับได้** (Pool) — default tab
-- **งานที่ทำอยู่** (Active)
-
-ใช้ `Tabs` ของ shadcn. หน้า profile ยังอยู่ที่ `/profile` เหมือนเดิม.
+ตอนออฟไลน์ → แสดง overlay จาง ๆ บอก "ออนไลน์เพื่อเริ่มติดตามตำแหน่ง" (ไม่ขยับเพราะ GPS watcher หยุด)
 
 ## ไฟล์ที่จะแก้/สร้าง
 
-### สร้างใหม่
-- `src/lib/orders-context.tsx` — รวม state ของ pool + active orders + realtime subscription
-- `src/components/orders/PoolList.tsx` — รายการงานพร้อมรับ + ปุ่ม "รับงาน"
-- `src/components/orders/ActiveOrderCard.tsx` — งานที่ทำอยู่ + ปุ่ม transition + ลิงก์ Google Maps
-- `src/lib/notification-sound.ts` — เล่นเสียงแจ้งเตือนสั้นๆ (WebAudio beep, ไม่ต้องโหลด asset)
+### สร้าง
+- `src/components/RiderLocationMap.tsx` — wrapper ที่ render เฉพาะฝั่ง client (กัน SSR crash) + จัดการ state empty/offline
+- `src/components/RiderLocationMapInner.tsx` — `MapContainer` + `TileLayer` + `Marker` + auto-recenter เมื่อพิกัดเปลี่ยน (โครงเดียวกับ `LocationPickerInner.tsx` ของ happyeat)
 
 ### แก้
-- `src/routes/_authenticated/index.tsx` — ใช้ OrdersProvider + Tabs (Pool / Active)
-- `src/lib/rider-context.tsx` — เพิ่ม mode parameter ให้ GPS watcher: throttle 15s/50m เมื่อมี active delivery (vs 10s/30m เดิม). คงพฤติกรรมเดิมตอน online-only.
+- `src/routes/_authenticated/index.tsx` — แทรก `<RiderLocationMap />` ด้านบน Tabs
+- `package.json` — เพิ่ม `leaflet`, `react-leaflet`, `@types/leaflet` (เวอร์ชันเดียวกับ happyeat: 1.9.4 / 5.0.0 / 1.9.21)
 
-## รายละเอียดแต่ละส่วน
+## รายละเอียดเทคนิค
 
-### 1. OrdersProvider (`src/lib/orders-context.tsx`)
-State:
-- `pool: OrderRow[]` — เฉพาะ `rider_id IS NULL AND status='ready'`
-- `active: OrderRow[]` — `rider_id = me AND status IN ('picked_up','delivering')`
-- `claim(id)`, `advanceStatus(id, next)`, `loading`
-
-Lifecycle:
-- เมื่อ `isOnline=true` → fetch pool + active, subscribe realtime channel `rider-pool` (table `orders`, event `*`)
-- เมื่อ `isOnline=false` → clear pool, unsubscribe (active list คงไว้ถ้ามี — ไรเดอร์ที่กำลังส่งของไม่ควรหาย)
-- unmount → unsubscribe
-
-Realtime handler (ใช้ payload.new + payload.old):
-- กรอง `auth.uid()` เอง (channel ไม่ filter server-side)
-- INSERT/UPDATE → ถ้าตรง pool condition และไม่มีในลิสต์ → push + toast "งานใหม่!" + beep
-- UPDATE → ถ้า row เคยอยู่ pool แต่ตอนนี้ `rider_id != null` หรือ status ไม่ใช่ ready → ลบจาก pool
-- UPDATE → ถ้า `rider_id = me` และ status in (picked_up/delivering) → ใส่/อัปเดต active
-- UPDATE → ถ้า row อยู่ active แต่ status = delivered/cancelled → ลบจาก active
-- DELETE → ลบจาก list ทั้งสอง
-
-Fetch (เลือก columns ตาม spec + join `restaurants`):
-```ts
-supabase.from('orders').select(`
-  id, restaurant_id, status, rider_id,
-  delivery_address, delivery_lat, delivery_lng,
-  subtotal, delivery_fee, notes, created_at,
-  restaurants(name, address, latitude, longitude, phone)
-`).is('rider_id', null).eq('status','ready').order('created_at', { ascending: true })
+**1. Client-only render (สำคัญ)**
+Leaflet เรียก `window` ตอน import → ต้อง dynamic import + render หลัง mount เท่านั้น ไม่งั้น SSR / prerender พัง:
+```tsx
+const [Inner, setInner] = useState<ComponentType<Props> | null>(null);
+useEffect(() => {
+  import("./RiderLocationMapInner").then((m) => setInner(() => m.default));
+}, []);
 ```
 
-### 2. Claim (race-safe)
-```ts
-const { data, error } = await supabase
-  .from('orders')
-  .update({ rider_id: user.id, status: 'picked_up' })
-  .eq('id', orderId)
-  .is('rider_id', null)
-  .eq('status', 'ready')
-  .select('id');
-```
-- `data.length === 0` → toast "งานนี้มีคนรับไปแล้ว" + ลบจาก pool local + refetch pool
-- success → toast + ย้ายไปแท็บ active (setActiveTab)
+**2. แหล่งข้อมูลตำแหน่ง**
+อ่านจาก `useRider().rider.current_lat / current_lng` ที่มีอยู่แล้ว — ไม่ต้องตั้ง `watchPosition` ซ้ำ ระบบ throttle 10s/30m เดิมก็ทำงานอยู่แล้วเวลา online
 
-### 3. Status transitions
-- `picked_up → delivering` ปุ่ม "เริ่มส่ง"
-- `delivering → delivered` ปุ่ม "ส่งสำเร็จ" (กดตรงๆ ไม่มี OTP — ดู Phase 3.5 ด้านล่าง)
+**3. หมุดเคลื่อน + auto-recenter**
+ใน Inner: ใช้ `useEffect([lat, lng])` เรียก `map.panTo([lat, lng])` (smooth) แทน `setView` (ตัดภาพแข็ง) — ให้รู้สึกลื่นเหมือน Grab/Bolt
 
-Update with guards เหมือน claim:
-```ts
-.update({ status: next }).eq('id', id).eq('rider_id', user.id).eq('status', current)
-```
+**4. กรณีไม่มีพิกัด**
+- ออฟไลน์ → แสดง placeholder card "เปิดออนไลน์เพื่อดูตำแหน่ง" (ไม่ render leaflet)
+- ออนไลน์แต่ยังไม่ได้พิกัด → spinner "กำลังหาตำแหน่ง..."
 
-### 4. GPS live update
-แก้ `rider-context.tsx`:
-- เพิ่ม `hasActiveDelivery` (อ่านจาก OrdersContext) → ถ้า true ใช้ throttle 15s/50m
-- ตอน status delivered/cancelled (active.length เป็น 0) + offline → กลับไป default
-- ใช้ watcher เดียวที่มีอยู่แล้ว, แค่ปรับ constant
+**5. ทำไมไม่ใช้ Google Maps**
+- ต้องผูกบัตรเครดิต + จัดการ API key + restrict referer
+- ค่าใช้จ่ายเริ่มหลัง free tier
+- OSM tiles ฟรีไม่จำกัด attribution แค่ "© OpenStreetMap"
 
-หมายเหตุ: RiderProvider จะต้องอยู่นอก OrdersProvider, แล้ว OrdersProvider expose `hasActive` ผ่าน hook ที่ rider-context อ่าน — เพื่อเลี่ยง circular, จะใช้ลำดับ provider:
-```
-<RiderProvider>
-  <OrdersProvider>  // อ่าน useRider().rider.is_online
-    <Shell />
-  </OrdersProvider>
-</RiderProvider>
-```
-ปรับ throttle โดยให้ `OrdersProvider` เรียก `setDeliveryMode(true|false)` ที่ rider-context expose ออกมาเป็น setter.
+**6. ข้อจำกัด OSM tiles**
+- ไม่มี traffic layer (Google Maps มี) — สำหรับ "ดูตำแหน่งตัวเอง" ไม่จำเป็น
+- ปุ่ม "นำทาง" ในการ์ดงาน active ยังลิงก์ออก Google Maps app ปกติ (ใช้ deep link `google.com/maps/dir/?api=1&...` ไม่ต้อง API key)
 
-### 5. Active order UI
-แสดง:
-- ชื่อร้าน, ที่อยู่ร้าน, เบอร์ร้าน (tel: link), ปุ่ม "นำทางไปร้าน" → `google.com/maps/dir/?api=1&destination={r.lat},{r.lng}`
-- ที่อยู่ลูกค้า, ปุ่ม "นำทางไปลูกค้า" → destination = `delivery_lat,delivery_lng`
-- ค่าส่ง (delivery_fee) — เน้นชัด เพราะเป็นเงินที่ต้องเก็บปลายทาง
-- notes (ถ้ามี)
-- ปุ่ม transition ตาม status ปัจจุบัน
+## ไม่แตะ
 
-## Phase 3.5 — OTP (ยังไม่ทำรอบนี้)
-Schema ปัจจุบันไม่มี `delivery_otp` ใน `orders`. ต้องสั่งห้อง **happyeat** ทำ migration เพิ่ม:
-- `orders.delivery_otp text` (generate ตอน `ready`?) หรือ
-- column ใน `orders` + UI ฝั่ง customer แสดง OTP
+- ไม่แตะ schema / database (ใช้ field `current_lat/lng` เดิม)
+- ไม่แตะ business logic / orders / RLS
+- ไม่แตะ GPS watcher logic ใน `rider-context.tsx`
+- ไม่ต้องประสานห้อง happyeat (ไม่มีอะไรเปลี่ยนใน contract)
 
-จะรายงานท้ายงานให้ user ไปสั่งห้อง happyeat.
+## หลังทำเสร็จจะตรวจ
 
-## ข้อห้ามที่จะรักษา
-- ไม่มี update orders field อื่นนอก `rider_id`, `status`
-- ไม่ touch `restaurants` / `menu_*` / `order_items` (อ่าน restaurants ผ่าน join เท่านั้น)
-- ไม่ migration
-- ไม่ assume customer role
-
-## รายงานท้ายงาน
-จะ confirm:
-1. Pool + realtime + เสียง/toast
-2. Claim race-safe (rows updated = 0 handling)
-3. Active flow picked_up→delivering→delivered
-4. GPS throttle เปลี่ยนตาม mode
-5. ขอ migration `delivery_otp` ที่ห้อง happyeat สำหรับ Phase 3.5
+- เปิดออนไลน์ → เห็นหมุดตัวเองบนแผนที่
+- เดิน/ขยับ → หมุด pan ตาม (รอ throttle ~10s)
+- ออฟไลน์ → แผนที่หายไป โชว์ placeholder
+- ปิด/เปิดแท็บ → ไม่ค้าง, ไม่ leak watcher
