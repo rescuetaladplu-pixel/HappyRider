@@ -25,7 +25,7 @@ function RiderDashboard() {
       <LocationPermissionBanner />
       <EnablePushBanner />
       <RiderLocationMap />
-      <div className="mb-3 flex justify-end">
+      <div className="mb-4">
         <EnablePushButton restaurantId={null} />
       </div>
       {rider && !rider.is_approved && (
