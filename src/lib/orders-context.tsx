@@ -49,10 +49,11 @@ interface OrdersContextValue {
   active: OrderRow[];
   loading: boolean;
   claim: (orderId: string) => Promise<ClaimResult>;
+  release: (orderId: string) => Promise<boolean>;
   advance: (
     orderId: string,
-    from: "picked_up" | "delivering",
-    to: "delivering" | "delivered",
+    from: "ready" | "picked_up" | "delivering",
+    to: "picked_up" | "delivering" | "delivered",
     otp?: string,
   ) => Promise<boolean>;
   refresh: () => Promise<void>;
@@ -60,8 +61,24 @@ interface OrdersContextValue {
 
 const OrdersContext = createContext<OrdersContextValue | undefined>(undefined);
 
-const POOL_STATUS = "ready";
-const ACTIVE_STATUSES = new Set(["picked_up", "delivering"]);
+// Pool: งานที่ยังไม่มีไรเดอร์ — รวมงานล่วงหน้า (รอลูกค้าจ่าย) + งานพร้อมส่ง
+const POOL_STATUSES = ["awaiting_confirmations", "ready"] as const;
+// Active: ทุกสถานะที่ไรเดอร์ถูก assign แล้ว (รวมระหว่างรอลูกค้า/รอร้าน)
+const ACTIVE_STATUSES = new Set([
+  "awaiting_confirmations",
+  "awaiting_payment",
+  "awaiting_payment_confirm",
+  "preparing",
+  "ready",
+  "picked_up",
+  "delivering",
+]);
+// สถานะที่ยังปล่อยงานคืนได้ (ก่อนร้านเริ่มทำอาหาร)
+export const RELEASABLE_STATUSES = new Set([
+  "awaiting_confirmations",
+  "awaiting_payment",
+  "awaiting_payment_confirm",
+]);
 
 export function OrdersProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
