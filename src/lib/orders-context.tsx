@@ -240,6 +240,32 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       toast.success("รับงานสำเร็จ");
       setPool((prev) => prev.filter((p) => p.id !== orderId));
       void fetchActive();
+
+      // Action 4 (SHARED_CONTRACT.md): ถ้าหลัง claim status กลายเป็น awaiting_payment
+      // = ร้านยืนยันก่อนหน้าแล้ว → ไรเดอร์เป็น "คนสุดท้าย" ต้องแจ้งลูกค้าว่าจ่ายเงินได้
+      void (async () => {
+        try {
+          const { data: row } = await supabase
+            .from("orders")
+            .select("status, customer_id")
+            .eq("id", orderId)
+            .maybeSingle();
+          if (row?.status === "awaiting_payment" && row.customer_id) {
+            await sendStatusPush({
+              data: {
+                targetUserId: row.customer_id,
+                title: "💳 จ่ายเงินได้แล้ว",
+                body: "ร้านและไรเดอร์ยืนยันแล้ว — เปิดแอปสแกน QR ชำระเงิน",
+                url: "/orders",
+                tag: `pay-${orderId}`,
+              },
+            });
+          }
+        } catch (e) {
+          console.error("[claim] post-claim push failed:", e);
+        }
+      })();
+
       return { ok: true };
     },
     [user, fetchPool, fetchActive],
