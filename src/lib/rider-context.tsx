@@ -38,8 +38,6 @@ interface RiderContextValue {
 
 const RiderContext = createContext<RiderContextValue | undefined>(undefined);
 
-const MIN_INTERVAL_MS = 10_000;
-const MIN_MOVE_METERS = 30;
 
 function haversine(
   lat1: number,
@@ -64,6 +62,7 @@ export function RiderProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const watchIdRef = useRef<number | null>(null);
+  const intervalIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastWriteRef = useRef<{ lat: number; lng: number; at: number } | null>(
     null,
   );
@@ -105,42 +104,68 @@ export function RiderProvider({ children }: { children: ReactNode }) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    if (intervalIdRef.current !== null) {
+      clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+    }
     lastWriteRef.current = null;
   }, []);
+
+  const writePosition = useCallback(
+    async (latitude: number, longitude: number) => {
+      if (!user) return;
+      const now = Date.now();
+      const last = lastWriteRef.current;
+      // Skip only if very recent AND barely moved (avoid spamming on burst events)
+      if (last) {
+        const dt = now - last.at;
+        const dist = haversine(last.lat, last.lng, latitude, longitude);
+        if (dt < 5_000 && dist < 5) return;
+      }
+      lastWriteRef.current = { lat: latitude, lng: longitude, at: now };
+      const { error } = await supabase
+        .from("riders")
+        .update({ current_lat: latitude, current_lng: longitude })
+        .eq("id", user.id);
+      if (!error) {
+        setRider((prev) =>
+          prev
+            ? { ...prev, current_lat: latitude, current_lng: longitude }
+            : prev,
+        );
+      }
+    },
+    [user],
+  );
 
   const startWatch = useCallback(() => {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) return;
     if (watchIdRef.current !== null) return;
     watchIdRef.current = navigator.geolocation.watchPosition(
-      async (pos) => {
-        if (!user) return;
-        const { latitude, longitude } = pos.coords;
-        const now = Date.now();
-        const last = lastWriteRef.current;
-        if (last) {
-          const dt = now - last.at;
-          const dist = haversine(last.lat, last.lng, latitude, longitude);
-          if (dt < MIN_INTERVAL_MS && dist < MIN_MOVE_METERS) return;
-        }
-        lastWriteRef.current = { lat: latitude, lng: longitude, at: now };
-        const { error } = await supabase
-          .from("riders")
-          .update({ current_lat: latitude, current_lng: longitude })
-          .eq("id", user.id);
-        if (!error) {
-          setRider((prev) =>
-            prev
-              ? { ...prev, current_lat: latitude, current_lng: longitude }
-              : prev,
-          );
-        }
+      (pos) => {
+        void writePosition(pos.coords.latitude, pos.coords.longitude);
       },
       (err) => {
         console.warn("geolocation error:", err.message);
       },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
     );
-  }, [user]);
+
+    // Periodic forced refresh every 15s — keeps coords fresh even when
+    // the rider is stationary, so OSRM ranking on the happyeat side
+    // always sees up-to-date positions.
+    intervalIdRef.current = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          void writePosition(pos.coords.latitude, pos.coords.longitude);
+        },
+        (err) => {
+          console.warn("geolocation interval error:", err.message);
+        },
+        { enableHighAccuracy: true, maximumAge: 10_000, timeout: 8_000 },
+      );
+    }, 15_000);
+  }, [user, writePosition]);
 
   // Manage watch lifecycle based on online state
   useEffect(() => {
