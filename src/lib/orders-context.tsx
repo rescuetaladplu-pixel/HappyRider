@@ -222,19 +222,15 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   const claim = useCallback(
     async (orderId: string): Promise<ClaimResult> => {
       if (!user) return { ok: false, reason: "error" };
-      const { data, error } = await supabase
-        .from("orders")
-        .update({ rider_id: user.id, status: "picked_up" })
-        .eq("id", orderId)
-        .is("rider_id", null)
-        .eq("status", "ready")
-        .select("id");
+      const { data, error } = await supabase.rpc("rider_claim_order", {
+        order_id: orderId,
+      });
       if (error) {
-        console.error("[claim] db error:", error.message);
+        console.error("[claim] rpc error:", error.message);
         toast.error("รับงานไม่สำเร็จ — กรุณาลองใหม่");
         return { ok: false, reason: "error" };
       }
-      if (!data || data.length === 0) {
+      if (data !== true) {
         toast.error("งานนี้มีคนรับไปแล้ว");
         setPool((prev) => prev.filter((p) => p.id !== orderId));
         void fetchPool();
@@ -248,11 +244,35 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     [user, fetchPool, fetchActive],
   );
 
+  const release = useCallback(
+    async (orderId: string): Promise<boolean> => {
+      if (!user) return false;
+      const { data, error } = await supabase.rpc("rider_release_order", {
+        order_id: orderId,
+      });
+      if (error) {
+        console.error("[release] rpc error:", error.message);
+        toast.error("ปล่อยงานไม่สำเร็จ — กรุณาลองใหม่");
+        return false;
+      }
+      if (data !== true) {
+        toast.error("ไม่สามารถปล่อยงานในสถานะนี้ได้");
+        void fetchActive();
+        return false;
+      }
+      toast.success("ปล่อยงานแล้ว");
+      setActive((prev) => prev.filter((p) => p.id !== orderId));
+      void fetchPool();
+      return true;
+    },
+    [user, fetchPool, fetchActive],
+  );
+
   const advance = useCallback(
     async (
       orderId: string,
-      from: "picked_up" | "delivering",
-      to: "delivering" | "delivered",
+      from: "ready" | "picked_up" | "delivering",
+      to: "picked_up" | "delivering" | "delivered",
       otp?: string,
     ) => {
       if (!user) return false;
@@ -281,7 +301,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         return true;
       }
 
-      // picked_up → delivering
+      // ready → picked_up หรือ picked_up → delivering
       const { data, error } = await supabase
         .from("orders")
         .update({ status: to })
@@ -299,7 +319,9 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         void fetchActive();
         return false;
       }
-      toast.success("เริ่มส่งแล้ว");
+      toast.success(
+        to === "picked_up" ? "รับของจากร้านแล้ว" : "เริ่มส่งแล้ว",
+      );
       setActive((prev) =>
         prev.map((p) => (p.id === orderId ? { ...p, status: to } : p)),
       );
@@ -309,7 +331,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   );
   return (
     <OrdersContext.Provider
-      value={{ pool, active, loading, claim, advance, refresh }}
+      value={{ pool, active, loading, claim, release, advance, refresh }}
     >
       {children}
     </OrdersContext.Provider>
