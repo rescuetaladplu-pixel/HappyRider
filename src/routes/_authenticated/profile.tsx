@@ -215,6 +215,36 @@ function ProfilePage() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>การแจ้งเตือน</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <Volume2 className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                <div>
+                  <Label htmlFor="sound-toggle" className="text-base">
+                    เสียงแจ้งเตือนงานใหม่
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    เปิดเสียง "ปี๊บ" เมื่อมีงานใหม่เข้ามา
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="sound-toggle"
+                checked={soundOn}
+                onCheckedChange={(v) => {
+                  setSoundOn(v);
+                  setNotificationSoundEnabled(v);
+                  if (v) playBeep();
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         <Button type="submit" disabled={saving} className="w-full">
           {saving ? "กำลังบันทึก..." : "บันทึก"}
         </Button>
