@@ -1,0 +1,18 @@
+{
+  "name": "HappyRider",
+  "short_name": "HappyRider",
+  "description": "แอปไรเดอร์ส่งอาหารของ HappyEat",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
