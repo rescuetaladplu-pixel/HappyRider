@@ -1,66 +1,46 @@
-## สรุปสั้น
+## เป้าหมาย
+เพิ่ม **Bottom Navigation Bar** แบบมือถือ ติดด้านล่างจอ มีปุ่มโลโก้ตรงกลางเป็นปุ่ม "หน้าแรก" (พร้อมรับงาน) เหมือนแอป Grab/Bolt
 
-ฝั่ง happyeat ใช้ **Leaflet + OpenStreetMap** (ฟรี, ไม่ต้อง API key) — ใช้สแตกเดียวกันที่ HappyRider จะดีที่สุด เพราะ:
-- ไม่ต้องตั้ง billing / API key อะไรเลย
-- ลูกค้าและร้านในฝั่ง happyeat เห็นแผนที่หน้าตาเดียวกัน → brand consistent
-- ระบบ tracking GPS ของไรเดอร์มีอยู่แล้ว (`riders.current_lat/lng` อัปเดตทุก 10 วินาที / 30 เมตร ผ่าน `watchPosition`) — แค่เอามาแสดงบนแผนที่
+## โครงสร้าง Bottom Nav (5 tabs)
 
-## สิ่งที่จะเพิ่ม
-
-แผนที่ขนาดสูง ~280px ติดอยู่ด้านบนของหน้า dashboard `/` เหนือแท็บ "งานที่รับได้ / งานที่ทำอยู่" — หมุดสีเขียวขยับตามตำแหน่งจริงของไรเดอร์เรียลไทม์ พร้อมปุ่ม "📍 ตรงกลาง" ให้กลับมาที่ตำแหน่งตัวเอง
-
-ตอนออฟไลน์ → แสดง overlay จาง ๆ บอก "ออนไลน์เพื่อเริ่มติดตามตำแหน่ง" (ไม่ขยับเพราะ GPS watcher หยุด)
-
-## ไฟล์ที่จะแก้/สร้าง
-
-### สร้าง
-- `src/components/RiderLocationMap.tsx` — wrapper ที่ render เฉพาะฝั่ง client (กัน SSR crash) + จัดการ state empty/offline
-- `src/components/RiderLocationMapInner.tsx` — `MapContainer` + `TileLayer` + `Marker` + auto-recenter เมื่อพิกัดเปลี่ยน (โครงเดียวกับ `LocationPickerInner.tsx` ของ happyeat)
-
-### แก้
-- `src/routes/_authenticated/index.tsx` — แทรก `<RiderLocationMap />` ด้านบน Tabs
-- `package.json` — เพิ่ม `leaflet`, `react-leaflet`, `@types/leaflet` (เวอร์ชันเดียวกับ happyeat: 1.9.4 / 5.0.0 / 1.9.21)
-
-## รายละเอียดเทคนิค
-
-**1. Client-only render (สำคัญ)**
-Leaflet เรียก `window` ตอน import → ต้อง dynamic import + render หลัง mount เท่านั้น ไม่งั้น SSR / prerender พัง:
-```tsx
-const [Inner, setInner] = useState<ComponentType<Props> | null>(null);
-useEffect(() => {
-  import("./RiderLocationMapInner").then((m) => setInner(() => m.default));
-}, []);
+```text
+┌─────────────────────────────────────────────┐
+│  ประวัติ  รายได้   [LOGO]  แจ้งเตือน  โปรไฟล์ │
+│   📋      💰      ⬤      🔔        👤      │
+└─────────────────────────────────────────────┘
 ```
 
-**2. แหล่งข้อมูลตำแหน่ง**
-อ่านจาก `useRider().rider.current_lat / current_lng` ที่มีอยู่แล้ว — ไม่ต้องตั้ง `watchPosition` ซ้ำ ระบบ throttle 10s/30m เดิมก็ทำงานอยู่แล้วเวลา online
+- ปุ่มกลาง = วงกลมยกขึ้นเล็กน้อย ใช้รูป `public/icon-512.png` → คลิกไปที่ `/` (หน้ารับงาน)
+- ปุ่มอื่นๆ = ไอคอน + label เล็กๆ พร้อม active state ใช้สี primary
+- ใช้ `<Link>` ของ TanStack Router + `activeProps`/`data-status` เพื่อ highlight tab ปัจจุบัน
 
-**3. หมุดเคลื่อน + auto-recenter**
-ใน Inner: ใช้ `useEffect([lat, lng])` เรียก `map.panTo([lat, lng])` (smooth) แทน `setView` (ตัดภาพแข็ง) — ให้รู้สึกลื่นเหมือน Grab/Bolt
+## ไฟล์ที่จะสร้าง/แก้
 
-**4. กรณีไม่มีพิกัด**
-- ออฟไลน์ → แสดง placeholder card "เปิดออนไลน์เพื่อดูตำแหน่ง" (ไม่ render leaflet)
-- ออนไลน์แต่ยังไม่ได้พิกัด → spinner "กำลังหาตำแหน่ง..."
+### สร้างใหม่
+1. **`src/components/BottomNav.tsx`** — bottom nav bar component (fixed bottom, 5 ช่อง, ปุ่มกลางใหญ่กว่า+ยกขึ้น)
+2. **`src/routes/_authenticated/history.tsx`** — placeholder "ประวัติงาน" (coming soon)
+3. **`src/routes/_authenticated/earnings.tsx`** — placeholder "รายได้" (coming soon)
+4. **`src/routes/_authenticated/notifications.tsx`** — placeholder "แจ้งเตือน/ข่าวสาร" (coming soon)
 
-**5. ทำไมไม่ใช้ Google Maps**
-- ต้องผูกบัตรเครดิต + จัดการ API key + restrict referer
-- ค่าใช้จ่ายเริ่มหลัง free tier
-- OSM tiles ฟรีไม่จำกัด attribution แค่ "© OpenStreetMap"
+> หน้า placeholder ทั้ง 3 ใช้เป็น stub ก่อน เพื่อให้ nav ทำงานได้ครบ ไม่กระทบ schema/contract
 
-**6. ข้อจำกัด OSM tiles**
-- ไม่มี traffic layer (Google Maps มี) — สำหรับ "ดูตำแหน่งตัวเอง" ไม่จำเป็น
-- ปุ่ม "นำทาง" ในการ์ดงาน active ยังลิงก์ออก Google Maps app ปกติ (ใช้ deep link `google.com/maps/dir/?api=1&...` ไม่ต้อง API key)
+### แก้ไข
+5. **`src/routes/_authenticated.tsx`**
+   - เพิ่ม `<BottomNav />` ใต้ `<main><Outlet /></main>`
+   - เพิ่ม `pb-24` ที่ `<main>` กัน content ถูก nav บัง
+   - ย้ายลิงก์ "โปรไฟล์" ออกจาก header (เพราะอยู่ใน bottom nav แล้ว) — header เหลือแค่ logo, online toggle, อีเมล, ออกจากระบบ
 
-## ไม่แตะ
+## รายละเอียดทางเทคนิค
 
-- ไม่แตะ schema / database (ใช้ field `current_lat/lng` เดิม)
-- ไม่แตะ business logic / orders / RLS
-- ไม่แตะ GPS watcher logic ใน `rider-context.tsx`
-- ไม่ต้องประสานห้อง happyeat (ไม่มีอะไรเปลี่ยนใน contract)
+- ใช้ `useLocation()` เช็ค active tab + แสดง state ด้วย `text-primary` vs `text-muted-foreground`
+- ปุ่มกลาง: `<Link to="/">` ครอบ `<div className="-mt-6 h-16 w-16 rounded-full bg-primary shadow-lg flex items-center justify-center">` ข้างในใส่ `<img src="/icon-512.png" />` ขนาด ~52px
+- Container: `fixed bottom-0 inset-x-0 z-40 border-t bg-background` + `safe-area-inset-bottom` (`pb-[env(safe-area-inset-bottom)]`)
+- Responsive: แสดงทุก viewport (เป็น mobile-first app อยู่แล้ว)
 
-## หลังทำเสร็จจะตรวจ
+## สิ่งที่ไม่เปลี่ยน
+- ไม่แตะ DB / schema / RLS / context providers
+- ไม่แตะ logic การรับงาน-online toggle
+- หน้า `/` ยังคงเป็นหน้ารับงานเดิม
 
-- เปิดออนไลน์ → เห็นหมุดตัวเองบนแผนที่
-- เดิน/ขยับ → หมุด pan ตาม (รอ throttle ~10s)
-- ออฟไลน์ → แผนที่หายไป โชว์ placeholder
-- ปิด/เปิดแท็บ → ไม่ค้าง, ไม่ leak watcher
+## หลังจากทำ
+รีไมนด์ผู้ใช้ว่า: ถ้าอยากให้หน้า "ประวัติงาน / รายได้ / แจ้งเตือน" มีข้อมูลจริง ต้องบอก scope ต่อ (และอาจต้องเพิ่ม table/view ฝั่ง happyeat)

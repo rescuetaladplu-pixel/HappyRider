@@ -17,6 +17,9 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
+import { Route as AuthenticatedEarningsRouteImport } from './routes/_authenticated/earnings'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -57,6 +60,22 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedEarningsRoute = AuthenticatedEarningsRouteImport.update({
+  id: '/earnings',
+  path: '/earnings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -65,6 +84,9 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/rider-dashboard': typeof RiderDashboardRoute
   '/signup': typeof SignupRoute
+  '/earnings': typeof AuthenticatedEarningsRoute
+  '/history': typeof AuthenticatedHistoryRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
 }
 export interface FileRoutesByTo {
@@ -73,6 +95,9 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/rider-dashboard': typeof RiderDashboardRoute
   '/signup': typeof SignupRoute
+  '/earnings': typeof AuthenticatedEarningsRoute
+  '/history': typeof AuthenticatedHistoryRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/': typeof AuthenticatedIndexRoute
 }
@@ -84,6 +109,9 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/rider-dashboard': typeof RiderDashboardRoute
   '/signup': typeof SignupRoute
+  '/_authenticated/earnings': typeof AuthenticatedEarningsRoute
+  '/_authenticated/history': typeof AuthenticatedHistoryRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
@@ -96,6 +124,9 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/rider-dashboard'
     | '/signup'
+    | '/earnings'
+    | '/history'
+    | '/notifications'
     | '/profile'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -104,6 +135,9 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/rider-dashboard'
     | '/signup'
+    | '/earnings'
+    | '/history'
+    | '/notifications'
     | '/profile'
     | '/'
   id:
@@ -114,6 +148,9 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/rider-dashboard'
     | '/signup'
+    | '/_authenticated/earnings'
+    | '/_authenticated/history'
+    | '/_authenticated/notifications'
     | '/_authenticated/profile'
     | '/_authenticated/'
   fileRoutesById: FileRoutesById
@@ -185,15 +222,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/earnings': {
+      id: '/_authenticated/earnings'
+      path: '/earnings'
+      fullPath: '/earnings'
+      preLoaderRoute: typeof AuthenticatedEarningsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedEarningsRoute: typeof AuthenticatedEarningsRoute
+  AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedEarningsRoute: AuthenticatedEarningsRoute,
+  AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
@@ -213,3 +277,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

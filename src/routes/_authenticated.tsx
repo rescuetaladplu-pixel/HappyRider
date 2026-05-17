@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { RiderProvider, useRider } from "@/lib/rider-context";
 import { OrdersProvider } from "@/lib/orders-context";
+import { BottomNav } from "@/components/BottomNav";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
@@ -111,12 +112,6 @@ function RiderShell({
                 </Label>
               </div>
             )}
-            <Link
-              to="/profile"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              โปรไฟล์
-            </Link>
             <span className="hidden text-muted-foreground sm:inline">
               {email}
             </span>
@@ -133,9 +128,10 @@ function RiderShell({
           </div>
         </div>
       </header>
-      <main>
+      <main className="pb-28">
         <Outlet />
       </main>
+      <BottomNav />
     </div>
   );
 }
