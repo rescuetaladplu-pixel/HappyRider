@@ -106,8 +106,39 @@ export function RiderProvider({ children }: { children: ReactNode }) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    if (intervalIdRef.current !== null) {
+      clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+    }
     lastWriteRef.current = null;
   }, []);
+
+  const writePosition = useCallback(
+    async (latitude: number, longitude: number) => {
+      if (!user) return;
+      const now = Date.now();
+      const last = lastWriteRef.current;
+      // Skip only if very recent AND barely moved (avoid spamming on burst events)
+      if (last) {
+        const dt = now - last.at;
+        const dist = haversine(last.lat, last.lng, latitude, longitude);
+        if (dt < 5_000 && dist < 5) return;
+      }
+      lastWriteRef.current = { lat: latitude, lng: longitude, at: now };
+      const { error } = await supabase
+        .from("riders")
+        .update({ current_lat: latitude, current_lng: longitude })
+        .eq("id", user.id);
+      if (!error) {
+        setRider((prev) =>
+          prev
+            ? { ...prev, current_lat: latitude, current_lng: longitude }
+            : prev,
+        );
+      }
+    },
+    [user],
+  );
 
   const startWatch = useCallback(() => {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) return;
