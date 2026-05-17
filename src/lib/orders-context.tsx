@@ -212,7 +212,8 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         .eq("status", "ready")
         .select("id");
       if (error) {
-        toast.error("รับงานไม่สำเร็จ: " + error.message);
+        console.error("[claim] db error:", error.message);
+        toast.error("รับงานไม่สำเร็จ — กรุณาลองใหม่");
         return { ok: false, reason: "error" };
       }
       if (!data || data.length === 0) {
@@ -266,7 +267,8 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         .eq("status", from)
         .select("id");
       if (error) {
-        toast.error("อัปเดตสถานะไม่สำเร็จ: " + error.message);
+        console.error("[advance] db error:", error.message);
+        toast.error("อัปเดตสถานะไม่สำเร็จ — กรุณาลองใหม่");
         return false;
       }
       if (!data || data.length === 0) {

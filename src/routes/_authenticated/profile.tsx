@@ -148,9 +148,8 @@ function ProfilePage() {
     setSaving(false);
 
     if (pErr || rErr) {
-      toast.error(
-        "บันทึกไม่สำเร็จ: " + (pErr?.message ?? rErr?.message ?? ""),
-      );
+      console.error("[profile] save error:", pErr?.message ?? rErr?.message);
+      toast.error("บันทึกไม่สำเร็จ — กรุณาลองใหม่");
       return;
     }
     toast.success("บันทึกโปรไฟล์เรียบร้อย");
