@@ -69,7 +69,7 @@ export const sendStatusPush = createServerFn({ method: "POST" })
       let sent = 0;
       const stale: string[] = [];
       await Promise.all(
-        tokens.map(async (t) => {
+        tokens.map(async (t: { token: string }) => {
           const res = await fetch(
             `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
             {
