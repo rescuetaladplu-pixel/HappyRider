@@ -38,8 +38,6 @@ interface RiderContextValue {
 
 const RiderContext = createContext<RiderContextValue | undefined>(undefined);
 
-const MIN_INTERVAL_MS = 10_000;
-const MIN_MOVE_METERS = 30;
 
 function haversine(
   lat1: number,
