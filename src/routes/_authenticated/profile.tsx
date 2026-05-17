@@ -36,6 +36,46 @@ export const Route = createFileRoute("/_authenticated/profile")({
 
 type VehicleType = "motorcycle" | "bicycle" | "car";
 
+function ThemeCard() {
+  const { theme, setTheme } = useTheme();
+  const options: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
+    { value: "light", label: "กลางวัน", icon: Sun },
+    { value: "dark", label: "กลางคืน", icon: Moon },
+    { value: "system", label: "ตามระบบ", icon: Monitor },
+  ];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>การแสดงผลหน้าจอ</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-3 gap-2">
+          {options.map((o) => {
+            const Icon = o.icon;
+            const active = theme === o.value;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => setTheme(o.value)}
+                className={
+                  "flex flex-col items-center justify-center gap-1 rounded-md border px-3 py-3 text-sm transition-colors " +
+                  (active
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border bg-background text-muted-foreground hover:bg-muted")
+                }
+              >
+                <Icon className="h-5 w-5" />
+                <span>{o.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ProfilePage() {
   const { user } = useAuth();
   const { profile, rider, loading, refresh, isProfileComplete } = useRider();
@@ -256,42 +296,3 @@ function ProfilePage() {
   );
 }
 
-function ThemeCard() {
-  const { theme, setTheme } = useTheme();
-  const options: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
-    { value: "light", label: "กลางวัน", icon: Sun },
-    { value: "dark", label: "กลางคืน", icon: Moon },
-    { value: "system", label: "ตามระบบ", icon: Monitor },
-  ];
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>การแสดงผลหน้าจอ</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-2">
-          {options.map((o) => {
-            const Icon = o.icon;
-            const active = theme === o.value;
-            return (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => setTheme(o.value)}
-                className={
-                  "flex flex-col items-center justify-center gap-1 rounded-md border px-3 py-3 text-sm transition-colors " +
-                  (active
-                    ? "border-primary bg-primary/10 text-foreground"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted")
-                }
-              >
-                <Icon className="h-5 w-5" />
-                <span>{o.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
