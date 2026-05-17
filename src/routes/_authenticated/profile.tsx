@@ -46,6 +46,11 @@ function ProfilePage() {
   const [vehicleType, setVehicleType] = useState<VehicleType | "">("");
   const [licensePlate, setLicensePlate] = useState("");
   const [saving, setSaving] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
+
+  useEffect(() => {
+    setSoundOn(isNotificationSoundEnabled());
+  }, []);
 
   useEffect(() => {
     if (profile) {
