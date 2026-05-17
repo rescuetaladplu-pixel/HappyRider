@@ -64,6 +64,7 @@ export function RiderProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const watchIdRef = useRef<number | null>(null);
+  const intervalIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastWriteRef = useRef<{ lat: number; lng: number; at: number } | null>(
     null,
   );
