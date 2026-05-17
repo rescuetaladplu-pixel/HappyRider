@@ -2,6 +2,7 @@
 let ctx: AudioContext | null = null;
 
 const SOUND_KEY = "happyrider:notification-sound";
+const SOUND_EVENT = "happyrider:notification-sound-changed";
 
 export function isNotificationSoundEnabled(): boolean {
   if (typeof window === "undefined") return true;
@@ -11,6 +12,18 @@ export function isNotificationSoundEnabled(): boolean {
 export function setNotificationSoundEnabled(enabled: boolean) {
   if (typeof window === "undefined") return;
   localStorage.setItem(SOUND_KEY, enabled ? "on" : "off");
+  // notify listeners in the same tab (storage event only fires cross-tab)
+  window.dispatchEvent(new CustomEvent(SOUND_EVENT, { detail: enabled }));
+}
+
+export function onNotificationSoundChange(cb: (enabled: boolean) => void) {
+  if (typeof window === "undefined") return () => {};
+  const handler = () => cb(isNotificationSoundEnabled());
+  window.addEventListener(SOUND_EVENT, handler);
+  window.addEventListener("storage", (e) => {
+    if (e.key === SOUND_KEY) handler();
+  });
+  return () => window.removeEventListener(SOUND_EVENT, handler);
 }
 
 export function playBeep() {

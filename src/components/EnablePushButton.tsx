@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, BellRing } from "lucide-react";
+import { Bell, BellOff, BellRing, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { requestFcmToken, onForegroundMessage } from "@/lib/firebase-client";
 import { registerFcmToken } from "@/lib/fcm.functions";
 import { useNotificationPermission } from "@/hooks/use-notification-permission";
+import {
+  isNotificationSoundEnabled,
+  onNotificationSoundChange,
+} from "@/lib/notification-sound";
 
 interface Props {
   restaurantId?: string | null;
@@ -14,7 +19,13 @@ interface Props {
 export function EnablePushButton({ restaurantId = null }: Props) {
   const perm = useNotificationPermission();
   const [busy, setBusy] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
   const register = useServerFn(registerFcmToken);
+
+  useEffect(() => {
+    setSoundOn(isNotificationSoundEnabled());
+    return onNotificationSoundChange(setSoundOn);
+  }, []);
 
   // Silently re-register token whenever permission is granted
   useEffect(() => {
@@ -75,6 +86,17 @@ export function EnablePushButton({ restaurantId = null }: Props) {
   if (perm === "unsupported") return null;
 
   if (perm === "granted") {
+    if (!soundOn) {
+      return (
+        <Link
+          to="/profile"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-amber-500/60 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition-colors hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-100"
+        >
+          <VolumeX className="h-5 w-5" />
+          ปิดเสียงแจ้งเตือนอยู่ — แตะเพื่อเปิด
+        </Link>
+      );
+    }
     return (
       <div className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
         <BellRing className="h-5 w-5" />
