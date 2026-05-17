@@ -54,3 +54,49 @@ export function playBeep() {
     // ignore
   }
 }
+
+// ---- Looping beep (foreground only) ----
+let loopTimer: ReturnType<typeof setInterval> | null = null;
+let stopHandlers: Array<() => void> = [];
+
+export function isBeepLooping() {
+  return loopTimer !== null;
+}
+
+export function stopBeepLoop() {
+  if (loopTimer) {
+    clearInterval(loopTimer);
+    loopTimer = null;
+  }
+  stopHandlers.forEach((fn) => fn());
+  stopHandlers = [];
+}
+
+/**
+ * Start looping beep every `intervalMs` until stopBeepLoop() is called
+ * or the user interacts (pointerdown / keydown / visibilitychange-hidden).
+ * Auto-stops after `maxMs` as a safety net.
+ */
+export function startBeepLoop(intervalMs = 2000, maxMs = 60_000) {
+  if (typeof window === "undefined") return;
+  if (!isNotificationSoundEnabled()) return;
+  stopBeepLoop();
+  playBeep();
+  loopTimer = setInterval(playBeep, intervalMs);
+
+  const stop = () => stopBeepLoop();
+  const onHide = () => {
+    if (document.visibilityState === "hidden") stop();
+  };
+  window.addEventListener("pointerdown", stop, { once: true });
+  window.addEventListener("keydown", stop, { once: true });
+  document.addEventListener("visibilitychange", onHide);
+  const timeout = window.setTimeout(stop, maxMs);
+
+  stopHandlers.push(() => {
+    window.removeEventListener("pointerdown", stop);
+    window.removeEventListener("keydown", stop);
+    document.removeEventListener("visibilitychange", onHide);
+    window.clearTimeout(timeout);
+  });
+}
