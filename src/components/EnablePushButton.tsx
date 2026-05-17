@@ -10,6 +10,8 @@ import { useNotificationPermission } from "@/hooks/use-notification-permission";
 import {
   isNotificationSoundEnabled,
   onNotificationSoundChange,
+  startBeepLoop,
+  stopBeepLoop,
 } from "@/lib/notification-sound";
 
 interface Props {
