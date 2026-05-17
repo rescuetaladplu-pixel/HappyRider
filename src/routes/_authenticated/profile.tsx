@@ -20,6 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  isNotificationSoundEnabled,
+  setNotificationSoundEnabled,
+  playBeep,
+} from "@/lib/notification-sound";
+import { Volume2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({ meta: [{ title: "โปรไฟล์ — HappyRider" }] }),
