@@ -16,10 +16,31 @@ export function EnablePushButton({ restaurantId = null }: Props) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if ("Notification" in window) {
-      if (Notification.permission === "granted") setStatus("granted");
-      else if (Notification.permission === "denied") setStatus("denied");
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "denied") {
+      setStatus("denied");
+      return;
     }
+    if (Notification.permission === "granted") {
+      setStatus("granted");
+      // Silently re-register token on every load (no user gesture needed when already granted)
+      (async () => {
+        try {
+          const token = await requestFcmToken();
+          if (!token) return;
+          await register({
+            data: {
+              token,
+              restaurantId: restaurantId ?? null,
+              userAgent: navigator.userAgent.slice(0, 500),
+            },
+          });
+        } catch {
+          // silent — token refresh failure shouldn't bother user
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
