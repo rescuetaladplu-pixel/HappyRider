@@ -144,14 +144,16 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
           const row = newRow ?? oldRow;
           if (!row?.id) return;
 
+          const isPoolStatus = (s?: string | null) =>
+            !!s && (POOL_STATUSES as readonly string[]).includes(s);
           const inPoolNow =
             !!newRow &&
             newRow.rider_id == null &&
-            newRow.status === POOL_STATUS;
+            isPoolStatus(newRow.status);
           const wasInPool =
             !!oldRow &&
             oldRow.rider_id == null &&
-            oldRow.status === POOL_STATUS;
+            isPoolStatus(oldRow.status);
 
           if (inPoolNow && !wasInPool) {
             supabase
