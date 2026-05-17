@@ -7,6 +7,7 @@ import { PoolList } from "@/components/orders/PoolList";
 import { ActiveOrderCard } from "@/components/orders/ActiveOrderCard";
 import { LocationPermissionBanner } from "@/components/LocationPermissionBanner";
 import { EnablePushButton } from "@/components/EnablePushButton";
+import { EnablePushBanner } from "@/components/EnablePushBanner";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — HappyRider" }] }),
@@ -21,6 +22,7 @@ function RiderDashboard() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
       <LocationPermissionBanner />
+      <EnablePushBanner />
       <div className="mb-3 flex justify-end">
         <EnablePushButton restaurantId={null} />
       </div>
