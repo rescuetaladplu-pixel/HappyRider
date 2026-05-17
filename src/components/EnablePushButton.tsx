@@ -5,46 +5,40 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { requestFcmToken, onForegroundMessage } from "@/lib/firebase-client";
 import { registerFcmToken } from "@/lib/fcm.functions";
+import { useNotificationPermission } from "@/hooks/use-notification-permission";
 
 interface Props {
   restaurantId?: string | null;
 }
 
 export function EnablePushButton({ restaurantId = null }: Props) {
-  const [status, setStatus] = useState<"idle" | "granted" | "denied" | "busy">("idle");
+  const perm = useNotificationPermission();
+  const [busy, setBusy] = useState(false);
   const register = useServerFn(registerFcmToken);
 
+  // Silently re-register token whenever permission is granted
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "denied") {
-      setStatus("denied");
-      return;
-    }
-    if (Notification.permission === "granted") {
-      setStatus("granted");
-      // Silently re-register token on every load (no user gesture needed when already granted)
-      (async () => {
-        try {
-          const token = await requestFcmToken();
-          if (!token) return;
-          await register({
-            data: {
-              token,
-              restaurantId: restaurantId ?? null,
-              userAgent: navigator.userAgent.slice(0, 500),
-            },
-          });
-        } catch {
-          // silent — token refresh failure shouldn't bother user
-        }
-      })();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (perm !== "granted") return;
+    (async () => {
+      try {
+        const token = await requestFcmToken();
+        if (!token) return;
+        await register({
+          data: {
+            token,
+            restaurantId: restaurantId ?? null,
+            userAgent: navigator.userAgent.slice(0, 500),
+          },
+        });
+      } catch {
+        // silent
+      }
+    })();
+  }, [perm, register, restaurantId]);
 
+  // Foreground message listener while granted
   useEffect(() => {
-    if (status !== "granted") return;
+    if (perm !== "granted") return;
     let unsub: (() => void) | undefined;
     (async () => {
       const off = await onForegroundMessage(({ title, body }) => {
@@ -53,14 +47,13 @@ export function EnablePushButton({ restaurantId = null }: Props) {
       unsub = typeof off === "function" ? off : undefined;
     })();
     return () => unsub?.();
-  }, [status]);
+  }, [perm]);
 
   async function enable() {
-    setStatus("busy");
+    setBusy(true);
     try {
       const token = await requestFcmToken();
       if (!token) {
-        setStatus("denied");
         toast.error("ไม่ได้รับสิทธิ์แจ้งเตือน — กรุณาเปิดในตั้งค่าเบราว์เซอร์");
         return;
       }
@@ -71,15 +64,17 @@ export function EnablePushButton({ restaurantId = null }: Props) {
           userAgent: navigator.userAgent.slice(0, 500),
         },
       });
-      setStatus("granted");
       toast.success("เปิดการแจ้งเตือนสำเร็จ!");
     } catch (e) {
-      setStatus("idle");
       toast.error(e instanceof Error ? e.message : "เปิดไม่สำเร็จ");
+    } finally {
+      setBusy(false);
     }
   }
 
-  if (status === "granted") {
+  if (perm === "unsupported") return null;
+
+  if (perm === "granted") {
     return (
       <div className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
         <BellRing className="h-5 w-5" />
@@ -87,7 +82,7 @@ export function EnablePushButton({ restaurantId = null }: Props) {
       </div>
     );
   }
-  if (status === "denied") {
+  if (perm === "denied") {
     return (
       <div className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-destructive/50 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
         <BellOff className="h-5 w-5" />
@@ -98,11 +93,11 @@ export function EnablePushButton({ restaurantId = null }: Props) {
   return (
     <Button
       onClick={enable}
-      disabled={status === "busy"}
+      disabled={busy}
       className="h-auto w-full gap-2 py-3 text-base font-semibold shadow-md"
     >
       <Bell className="h-5 w-5" />
-      {status === "busy" ? "กำลังเปิด..." : "🔔 เปิดแจ้งเตือน Push เพื่อรับงานใหม่"}
+      {busy ? "กำลังเปิด..." : "🔔 เปิดแจ้งเตือน Push เพื่อรับงานใหม่"}
     </Button>
   );
 }

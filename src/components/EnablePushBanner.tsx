@@ -1,24 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { requestFcmToken } from "@/lib/firebase-client";
 import { registerFcmToken } from "@/lib/fcm.functions";
+import { useNotificationPermission } from "@/hooks/use-notification-permission";
 
 export function EnablePushBanner() {
-  const [visible, setVisible] = useState(false);
+  const perm = useNotificationPermission();
   const [busy, setBusy] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const register = useServerFn(registerFcmToken);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!("Notification" in window)) return;
-    // Show banner whenever permission is not yet decided.
-    // (granted/denied → don't show. Auto silent-register handled by EnablePushButton.)
-    if (Notification.permission === "default") setVisible(true);
-  }, []);
 
   async function enable() {
     setBusy(true);
@@ -26,7 +19,6 @@ export function EnablePushBanner() {
       const token = await requestFcmToken();
       if (!token) {
         toast.error("ไม่ได้รับสิทธิ์แจ้งเตือน — กรุณาเปิดในตั้งค่าเบราว์เซอร์");
-        setVisible(false);
         return;
       }
       await register({
@@ -37,7 +29,6 @@ export function EnablePushBanner() {
         },
       });
       toast.success("เปิดการแจ้งเตือนสำเร็จ! พร้อมรับงานใหม่ทุกเมื่อ");
-      setVisible(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "เปิดไม่สำเร็จ");
     } finally {
@@ -45,7 +36,8 @@ export function EnablePushBanner() {
     }
   }
 
-  if (!visible || dismissed) return null;
+  // Only show when user hasn't decided yet
+  if (perm !== "default" || dismissed) return null;
 
   return (
     <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-4 shadow-sm">
