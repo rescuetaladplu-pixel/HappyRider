@@ -94,7 +94,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       .from("orders")
       .select(SELECT)
       .is("rider_id", null)
-      .eq("status", POOL_STATUS)
+      .in("status", POOL_STATUSES as unknown as string[])
       .order("created_at", { ascending: true });
     if (!error && data) setPool(data as unknown as OrderRow[]);
   }, []);
@@ -105,7 +105,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       .from("orders")
       .select(SELECT)
       .eq("rider_id", user.id)
-      .in("status", ["picked_up", "delivering"])
+      .in("status", Array.from(ACTIVE_STATUSES))
       .order("created_at", { ascending: true });
     if (!error && data) setActive(data as unknown as OrderRow[]);
   }, [user]);
