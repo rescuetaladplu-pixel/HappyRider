@@ -144,35 +144,30 @@ export function RiderProvider({ children }: { children: ReactNode }) {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) return;
     if (watchIdRef.current !== null) return;
     watchIdRef.current = navigator.geolocation.watchPosition(
-      async (pos) => {
-        if (!user) return;
-        const { latitude, longitude } = pos.coords;
-        const now = Date.now();
-        const last = lastWriteRef.current;
-        if (last) {
-          const dt = now - last.at;
-          const dist = haversine(last.lat, last.lng, latitude, longitude);
-          if (dt < MIN_INTERVAL_MS && dist < MIN_MOVE_METERS) return;
-        }
-        lastWriteRef.current = { lat: latitude, lng: longitude, at: now };
-        const { error } = await supabase
-          .from("riders")
-          .update({ current_lat: latitude, current_lng: longitude })
-          .eq("id", user.id);
-        if (!error) {
-          setRider((prev) =>
-            prev
-              ? { ...prev, current_lat: latitude, current_lng: longitude }
-              : prev,
-          );
-        }
+      (pos) => {
+        void writePosition(pos.coords.latitude, pos.coords.longitude);
       },
       (err) => {
         console.warn("geolocation error:", err.message);
       },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
     );
-  }, [user]);
+
+    // Periodic forced refresh every 15s — keeps coords fresh even when
+    // the rider is stationary, so OSRM ranking on the happyeat side
+    // always sees up-to-date positions.
+    intervalIdRef.current = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          void writePosition(pos.coords.latitude, pos.coords.longitude);
+        },
+        (err) => {
+          console.warn("geolocation interval error:", err.message);
+        },
+        { enableHighAccuracy: true, maximumAge: 10_000, timeout: 8_000 },
+      );
+    }, 15_000);
+  }, [user, writePosition]);
 
   // Manage watch lifecycle based on online state
   useEffect(() => {
