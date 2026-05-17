@@ -49,10 +49,11 @@ interface OrdersContextValue {
   active: OrderRow[];
   loading: boolean;
   claim: (orderId: string) => Promise<ClaimResult>;
+  release: (orderId: string) => Promise<boolean>;
   advance: (
     orderId: string,
-    from: "picked_up" | "delivering",
-    to: "delivering" | "delivered",
+    from: "ready" | "picked_up" | "delivering",
+    to: "picked_up" | "delivering" | "delivered",
     otp?: string,
   ) => Promise<boolean>;
   refresh: () => Promise<void>;
@@ -60,8 +61,24 @@ interface OrdersContextValue {
 
 const OrdersContext = createContext<OrdersContextValue | undefined>(undefined);
 
-const POOL_STATUS = "ready";
-const ACTIVE_STATUSES = new Set(["picked_up", "delivering"]);
+// Pool: งานที่ยังไม่มีไรเดอร์ — รวมงานล่วงหน้า (รอลูกค้าจ่าย) + งานพร้อมส่ง
+const POOL_STATUSES = ["awaiting_confirmations", "ready"] as const;
+// Active: ทุกสถานะที่ไรเดอร์ถูก assign แล้ว (รวมระหว่างรอลูกค้า/รอร้าน)
+const ACTIVE_STATUSES = new Set([
+  "awaiting_confirmations",
+  "awaiting_payment",
+  "awaiting_payment_confirm",
+  "preparing",
+  "ready",
+  "picked_up",
+  "delivering",
+]);
+// สถานะที่ยังปล่อยงานคืนได้ (ก่อนร้านเริ่มทำอาหาร)
+export const RELEASABLE_STATUSES = new Set([
+  "awaiting_confirmations",
+  "awaiting_payment",
+  "awaiting_payment_confirm",
+]);
 
 export function OrdersProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -77,7 +94,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       .from("orders")
       .select(SELECT)
       .is("rider_id", null)
-      .eq("status", POOL_STATUS)
+      .in("status", POOL_STATUSES as unknown as string[])
       .order("created_at", { ascending: true });
     if (!error && data) setPool(data as unknown as OrderRow[]);
   }, []);
@@ -88,7 +105,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       .from("orders")
       .select(SELECT)
       .eq("rider_id", user.id)
-      .in("status", ["picked_up", "delivering"])
+      .in("status", Array.from(ACTIVE_STATUSES))
       .order("created_at", { ascending: true });
     if (!error && data) setActive(data as unknown as OrderRow[]);
   }, [user]);
@@ -127,14 +144,16 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
           const row = newRow ?? oldRow;
           if (!row?.id) return;
 
+          const isPoolStatus = (s?: string | null) =>
+            !!s && (POOL_STATUSES as readonly string[]).includes(s);
           const inPoolNow =
             !!newRow &&
             newRow.rider_id == null &&
-            newRow.status === POOL_STATUS;
+            isPoolStatus(newRow.status);
           const wasInPool =
             !!oldRow &&
             oldRow.rider_id == null &&
-            oldRow.status === POOL_STATUS;
+            isPoolStatus(oldRow.status);
 
           if (inPoolNow && !wasInPool) {
             supabase
@@ -203,19 +222,15 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   const claim = useCallback(
     async (orderId: string): Promise<ClaimResult> => {
       if (!user) return { ok: false, reason: "error" };
-      const { data, error } = await supabase
-        .from("orders")
-        .update({ rider_id: user.id, status: "picked_up" })
-        .eq("id", orderId)
-        .is("rider_id", null)
-        .eq("status", "ready")
-        .select("id");
+      const { data, error } = await supabase.rpc("rider_claim_order", {
+        order_id: orderId,
+      });
       if (error) {
-        console.error("[claim] db error:", error.message);
+        console.error("[claim] rpc error:", error.message);
         toast.error("รับงานไม่สำเร็จ — กรุณาลองใหม่");
         return { ok: false, reason: "error" };
       }
-      if (!data || data.length === 0) {
+      if (data !== true) {
         toast.error("งานนี้มีคนรับไปแล้ว");
         setPool((prev) => prev.filter((p) => p.id !== orderId));
         void fetchPool();
@@ -229,11 +244,35 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     [user, fetchPool, fetchActive],
   );
 
+  const release = useCallback(
+    async (orderId: string): Promise<boolean> => {
+      if (!user) return false;
+      const { data, error } = await supabase.rpc("rider_release_order", {
+        order_id: orderId,
+      });
+      if (error) {
+        console.error("[release] rpc error:", error.message);
+        toast.error("ปล่อยงานไม่สำเร็จ — กรุณาลองใหม่");
+        return false;
+      }
+      if (data !== true) {
+        toast.error("ไม่สามารถปล่อยงานในสถานะนี้ได้");
+        void fetchActive();
+        return false;
+      }
+      toast.success("ปล่อยงานแล้ว");
+      setActive((prev) => prev.filter((p) => p.id !== orderId));
+      void fetchPool();
+      return true;
+    },
+    [user, fetchPool, fetchActive],
+  );
+
   const advance = useCallback(
     async (
       orderId: string,
-      from: "picked_up" | "delivering",
-      to: "delivering" | "delivered",
+      from: "ready" | "picked_up" | "delivering",
+      to: "picked_up" | "delivering" | "delivered",
       otp?: string,
     ) => {
       if (!user) return false;
@@ -262,7 +301,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         return true;
       }
 
-      // picked_up → delivering
+      // ready → picked_up หรือ picked_up → delivering
       const { data, error } = await supabase
         .from("orders")
         .update({ status: to })
@@ -280,7 +319,9 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         void fetchActive();
         return false;
       }
-      toast.success("เริ่มส่งแล้ว");
+      toast.success(
+        to === "picked_up" ? "รับของจากร้านแล้ว" : "เริ่มส่งแล้ว",
+      );
       setActive((prev) =>
         prev.map((p) => (p.id === orderId ? { ...p, status: to } : p)),
       );
@@ -290,7 +331,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   );
   return (
     <OrdersContext.Provider
-      value={{ pool, active, loading, claim, advance, refresh }}
+      value={{ pool, active, loading, claim, release, advance, refresh }}
     >
       {children}
     </OrdersContext.Provider>
