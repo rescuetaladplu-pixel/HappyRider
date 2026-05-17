@@ -86,6 +86,17 @@ export function EnablePushButton({ restaurantId = null }: Props) {
   if (perm === "unsupported") return null;
 
   if (perm === "granted") {
+    if (!soundOn) {
+      return (
+        <Link
+          to="/profile"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-amber-500/60 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition-colors hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-100"
+        >
+          <VolumeX className="h-5 w-5" />
+          ปิดเสียงแจ้งเตือนอยู่ — แตะเพื่อเปิด
+        </Link>
+      );
+    }
     return (
       <div className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
         <BellRing className="h-5 w-5" />
