@@ -1,8 +1,21 @@
 // Simple WebAudio beep — no asset required
 let ctx: AudioContext | null = null;
 
+const SOUND_KEY = "happyrider:notification-sound";
+
+export function isNotificationSoundEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem(SOUND_KEY) !== "off";
+}
+
+export function setNotificationSoundEnabled(enabled: boolean) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(SOUND_KEY, enabled ? "on" : "off");
+}
+
 export function playBeep() {
   if (typeof window === "undefined") return;
+  if (!isNotificationSoundEnabled()) return;
   try {
     if (!ctx) {
       const AC =
