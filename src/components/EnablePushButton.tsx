@@ -55,7 +55,16 @@ export function EnablePushButton({ restaurantId = null }: Props) {
     let unsub: (() => void) | undefined;
     (async () => {
       const off = await onForegroundMessage(({ title, body }) => {
-        toast.success(title || "แจ้งเตือน", { description: body });
+        startBeepLoop();
+        toast.success(title || "งานใหม่!", {
+          description: body,
+          duration: 60_000,
+          action: {
+            label: "รับทราบ",
+            onClick: () => stopBeepLoop(),
+          },
+          onDismiss: () => stopBeepLoop(),
+        });
       });
       unsub = typeof off === "function" ? off : undefined;
     })();
