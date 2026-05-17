@@ -97,29 +97,20 @@ function PoolCard({
             {order.restaurants?.name ?? "ร้านอาหาร"}
           </div>
           <div className="mt-1 text-sm text-muted-foreground">
-            📍 รับที่: {order.restaurants?.name ?? "ร้านอาหาร"}
-            {order.restaurants?.address ? ` — ${order.restaurants.address}` : ""}
+            📍 {order.restaurants?.address ?? "—"}
+            {riderToRestaurantKm != null && (
+              <span className="ml-2 text-xs text-foreground">
+                ไปร้านอาหาร - {formatKm(riderToRestaurantKm)}
+              </span>
+            )}
           </div>
           <div className="mt-1 text-sm text-muted-foreground">
-            🏠 ส่งที่: {order.delivery_address ?? "—"}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span>
-              🛵 → 🏪{" "}
-              <span className="font-medium text-foreground">
-                {riderToRestaurantKm != null
-                  ? formatKm(riderToRestaurantKm)
-                  : "—"}
+            🏠 {order.delivery_address ?? "—"}
+            {restaurantToCustomerKm != null && (
+              <span className="ml-2 text-xs text-foreground">
+                ไปส่งลูกค้า - {formatKm(restaurantToCustomerKm)}
               </span>
-            </span>
-            <span>
-              🏪 → 🏠{" "}
-              <span className="font-medium text-foreground">
-                {restaurantToCustomerKm != null
-                  ? formatKm(restaurantToCustomerKm)
-                  : "—"}
-              </span>
-            </span>
+            )}
           </div>
           {order.notes && (
             <div className="mt-2 rounded bg-muted/50 p-2 text-xs">
