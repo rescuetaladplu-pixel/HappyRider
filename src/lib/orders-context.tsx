@@ -31,7 +31,6 @@ export interface OrderRow {
   subtotal: number | null;
   delivery_fee: number | null;
   notes: string | null;
-  delivery_otp: string | null;
   created_at: string;
   restaurants: RestaurantRef | null;
 }
@@ -39,7 +38,7 @@ export interface OrderRow {
 const SELECT = `
   id, restaurant_id, rider_id, status,
   delivery_address, delivery_lat, delivery_lng,
-  subtotal, delivery_fee, notes, delivery_otp, created_at,
+  subtotal, delivery_fee, notes, created_at,
   restaurants(name, address, latitude, longitude, phone)
 `;
 
@@ -238,27 +237,32 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       otp?: string,
     ) => {
       if (!user) return false;
+
       if (to === "delivered") {
         const code = (otp ?? "").trim();
         if (!/^\d{4}$/.test(code)) {
           toast.error("กรุณากรอก OTP 4 หลัก");
           return false;
         }
-        const { data: row, error: readErr } = await supabase
-          .from("orders")
-          .select("delivery_otp")
-          .eq("id", orderId)
-          .eq("rider_id", user.id)
-          .maybeSingle();
-        if (readErr || !row) {
-          toast.error("ไม่พบออเดอร์");
+        const { data, error } = await supabase.rpc("confirm_delivery", {
+          order_id: orderId,
+          otp_code: code,
+        });
+        if (error) {
+          console.error("[confirm_delivery] rpc error:", error.message);
+          toast.error("ยืนยันส่งไม่สำเร็จ — กรุณาลองใหม่");
           return false;
         }
-        if (!row.delivery_otp || row.delivery_otp !== code) {
+        if (data !== true) {
           toast.error("OTP ไม่ถูกต้อง");
           return false;
         }
+        toast.success("ส่งสำเร็จ — รับเงินค่าส่งจากลูกค้า");
+        setActive((prev) => prev.filter((p) => p.id !== orderId));
+        return true;
       }
+
+      // picked_up → delivering
       const { data, error } = await supabase
         .from("orders")
         .update({ status: to })
@@ -276,15 +280,10 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         void fetchActive();
         return false;
       }
-      if (to === "delivered") {
-        toast.success("ส่งสำเร็จ — รับเงินค่าส่งจากลูกค้า");
-        setActive((prev) => prev.filter((p) => p.id !== orderId));
-      } else {
-        toast.success("เริ่มส่งแล้ว");
-        setActive((prev) =>
-          prev.map((p) => (p.id === orderId ? { ...p, status: to } : p)),
-        );
-      }
+      toast.success("เริ่มส่งแล้ว");
+      setActive((prev) =>
+        prev.map((p) => (p.id === orderId ? { ...p, status: to } : p)),
+      );
       return true;
     },
     [user, fetchActive],
