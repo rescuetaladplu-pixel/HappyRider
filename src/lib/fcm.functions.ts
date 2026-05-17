@@ -27,6 +27,9 @@ export const registerFcmToken = createServerFn({ method: "POST" })
       },
       { onConflict: "token" },
     );
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("[registerFcmToken] db error:", error.message);
+      throw new Error("FCM token registration failed");
+    }
     return { ok: true };
   });

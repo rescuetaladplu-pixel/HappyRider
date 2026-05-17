@@ -88,7 +88,8 @@ export function EnablePushButton({ restaurantId = null }: Props) {
       });
       toast.success("เปิดการแจ้งเตือนสำเร็จ!");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "เปิดไม่สำเร็จ");
+      console.error("[EnablePush] error:", e);
+      toast.error("เปิดไม่สำเร็จ — กรุณาลองใหม่");
     } finally {
       setBusy(false);
     }
