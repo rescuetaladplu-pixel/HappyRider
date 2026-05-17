@@ -26,7 +26,8 @@ import {
   setNotificationSoundEnabled,
   playBeep,
 } from "@/lib/notification-sound";
-import { Volume2 } from "lucide-react";
+import { Volume2, Sun, Moon, Monitor } from "lucide-react";
+import { useTheme, type ThemeMode } from "@/lib/theme-context";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({ meta: [{ title: "โปรไฟล์ — HappyRider" }] }),
