@@ -246,7 +246,7 @@ function ProfilePage() {
           </CardContent>
         </Card>
 
-        <ThemeCardInline />
+        <ThemeCard />
 
         <Button type="submit" disabled={saving} className="w-full">
           {saving ? "กำลังบันทึก..." : "บันทึก"}
