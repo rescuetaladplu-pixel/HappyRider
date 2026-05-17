@@ -81,24 +81,28 @@ export function EnablePushButton({ restaurantId = null }: Props) {
 
   if (status === "granted") {
     return (
-      <Button variant="outline" size="sm" disabled className="gap-2">
-        <BellRing className="h-4 w-4 text-primary" />
-        เปิดแจ้งเตือนแล้ว
-      </Button>
+      <div className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
+        <BellRing className="h-5 w-5" />
+        เปิดแจ้งเตือนแล้ว — พร้อมรับงาน
+      </div>
     );
   }
   if (status === "denied") {
     return (
-      <Button variant="outline" size="sm" disabled className="gap-2 text-muted-foreground">
-        <BellOff className="h-4 w-4" />
-        ถูกบล็อก — เปิดในตั้งค่าเบราว์เซอร์
-      </Button>
+      <div className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-destructive/50 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
+        <BellOff className="h-5 w-5" />
+        แจ้งเตือนถูกบล็อก — เปิดในตั้งค่าเบราว์เซอร์
+      </div>
     );
   }
   return (
-    <Button onClick={enable} size="sm" disabled={status === "busy"} className="gap-2">
-      <Bell className="h-4 w-4" />
-      {status === "busy" ? "กำลังเปิด..." : "เปิดแจ้งเตือน Push"}
+    <Button
+      onClick={enable}
+      disabled={status === "busy"}
+      className="h-auto w-full gap-2 py-3 text-base font-semibold shadow-md"
+    >
+      <Bell className="h-5 w-5" />
+      {status === "busy" ? "กำลังเปิด..." : "🔔 เปิดแจ้งเตือน Push เพื่อรับงานใหม่"}
     </Button>
   );
 }
