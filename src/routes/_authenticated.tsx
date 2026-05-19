@@ -107,7 +107,7 @@ function RiderShell() {
           )}
         </div>
       </header>
-      <main className="pb-28">
+      <main className="pb-20">
         <Outlet />
       </main>
       <BottomNav />
