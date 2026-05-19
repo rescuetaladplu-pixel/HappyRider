@@ -28,6 +28,7 @@ import {
 } from "@/lib/notification-sound";
 import { Volume2, Sun, Moon, Monitor } from "lucide-react";
 import { useTheme, type ThemeMode } from "@/lib/theme-context";
+import { AppVersionCard } from "@/components/AppVersionCard";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({ meta: [{ title: "โปรไฟล์ — HappyRider" }] }),
@@ -286,6 +287,8 @@ function ProfilePage() {
         </Card>
 
         <ThemeCard />
+
+        <AppVersionCard />
 
         <Button type="submit" disabled={saving} className="w-full">
           {saving ? "กำลังบันทึก..." : "บันทึก"}

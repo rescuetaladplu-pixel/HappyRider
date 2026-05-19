@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
 import { supabase } from '@/integrations/supabase/client';
 import { APP_VERSION, compareVersions } from '@/lib/app-version';
+import { downloadAndInstallApk } from '@/lib/apk-updater';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Download, AlertTriangle } from 'lucide-react';
 
 type AppConfig = {
@@ -20,6 +21,8 @@ export function ForceUpdateGate() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [currentVersion, setCurrentVersion] = useState<string>(APP_VERSION);
   const [mustUpdate, setMustUpdate] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,10 +69,14 @@ export function ForceUpdateGate() {
 
   const handleUpdate = async () => {
     if (!config?.apk_download_url) return;
+    setDownloading(true);
+    setProgress(0);
     try {
-      await Browser.open({ url: config.apk_download_url });
-    } catch {
-      window.open(config.apk_download_url, '_blank');
+      await downloadAndInstallApk(config.apk_download_url, setProgress);
+    } catch (e) {
+      console.error('[force-update] download error:', e);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -111,14 +118,21 @@ export function ForceUpdateGate() {
           )}
         </div>
 
+        {downloading && (
+          <div className="space-y-1">
+            <Progress value={progress} />
+            <p className="text-right text-xs text-muted-foreground">{progress}%</p>
+          </div>
+        )}
+
         <Button
           onClick={handleUpdate}
-          disabled={!config.apk_download_url}
+          disabled={!config.apk_download_url || downloading}
           size="lg"
           className="mt-2 w-full gap-2"
         >
           <Download className="h-5 w-5" />
-          ดาวน์โหลดเวอร์ชันใหม่
+          {downloading ? 'กำลังดาวน์โหลด...' : 'ดาวน์โหลดเวอร์ชันใหม่'}
         </Button>
 
         <p className="text-center text-xs text-muted-foreground">
