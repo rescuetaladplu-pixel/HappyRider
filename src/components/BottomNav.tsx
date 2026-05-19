@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { History, Wallet, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import runnerIcon from "@/assets/happyrider-runner.png";
 
 type Item = {
   to: "/history" | "/earnings" | "/notifications" | "/profile";
@@ -48,20 +49,20 @@ export function BottomNav() {
           <NavItem key={it.to} item={it} active={path === it.to} />
         ))}
 
-        {/* Center home button (logo) */}
+        {/* Center home button (runner) */}
         <div className="flex flex-1 items-start justify-center">
           <Link
             to="/"
             aria-label="หน้าแรก พร้อมรับงาน"
             className={cn(
-              "-mt-6 flex h-16 w-16 items-center justify-center rounded-full border-4 border-background bg-primary shadow-lg transition-transform active:scale-95",
+              "-mt-6 flex h-16 w-16 items-center justify-center rounded-full border-4 border-background bg-white shadow-lg transition-transform active:scale-95",
               isHome && "ring-2 ring-primary/40",
             )}
           >
             <img
-              src="/icon-512.png"
+              src={runnerIcon}
               alt=""
-              className="h-12 w-12 rounded-full object-cover"
+              className="h-12 w-12 object-contain"
             />
           </Link>
         </div>
