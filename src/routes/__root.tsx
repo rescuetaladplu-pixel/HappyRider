@@ -134,6 +134,7 @@ function RootComponent() {
           <Outlet />
           <ForceUpdateGate />
           <SystemBarsConfig />
+          <SafeAreaScrim />
           <Toaster richColors position="top-center" />
         </AuthProvider>
       </ThemeProvider>
