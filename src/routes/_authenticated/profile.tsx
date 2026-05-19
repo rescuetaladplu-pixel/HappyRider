@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useRider } from "@/lib/rider-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { Label } from "@/components/ui/label";
 import {
   Card,
