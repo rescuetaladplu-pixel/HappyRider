@@ -118,14 +118,21 @@ export function ForceUpdateGate() {
           )}
         </div>
 
+        {downloading && (
+          <div className="space-y-1">
+            <Progress value={progress} />
+            <p className="text-right text-xs text-muted-foreground">{progress}%</p>
+          </div>
+        )}
+
         <Button
           onClick={handleUpdate}
-          disabled={!config.apk_download_url}
+          disabled={!config.apk_download_url || downloading}
           size="lg"
           className="mt-2 w-full gap-2"
         >
           <Download className="h-5 w-5" />
-          ดาวน์โหลดเวอร์ชันใหม่
+          {downloading ? 'กำลังดาวน์โหลด...' : 'ดาวน์โหลดเวอร์ชันใหม่'}
         </Button>
 
         <p className="text-center text-xs text-muted-foreground">
