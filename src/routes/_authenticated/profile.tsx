@@ -291,6 +291,25 @@ function ProfilePage() {
           {saving ? "กำลังบันทึก..." : "บันทึก"}
         </Button>
       </form>
+
+      <div className="mt-6 border-t pt-6">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={async () => {
+            await supabase.auth.signOut();
+            navigate({ to: "/login" });
+          }}
+        >
+          ออกจากระบบ
+        </Button>
+        {user?.email && (
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            เข้าสู่ระบบในชื่อ {user.email}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { RiderProvider, useRider } from "@/lib/rider-context";
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-  const { user, loading, isRider, roles, signOut } = useAuth();
+  const { user, loading, isRider, roles } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,22 +56,17 @@ function AuthenticatedLayout() {
   return (
     <RiderProvider>
       <OrdersProvider>
-        <RiderShell signOut={signOut} email={user.email ?? ""} />
+        <RiderShell />
       </OrdersProvider>
     </RiderProvider>
   );
 }
 
-function RiderShell({
-  signOut,
-  email,
-}: {
-  signOut: () => Promise<void>;
-  email: string;
-}) {
+function RiderShell() {
   const { rider, isProfileComplete, loading, toggleOnline } = useRider();
   const navigate = useNavigate();
   const location = useLocation();
+
 
   // Force profile completion before using the app
   useEffect(() => {
@@ -85,49 +80,34 @@ function RiderShell({
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2">
           <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="HappyRider" className="h-9 w-9 object-contain" />
+            <img src={logo} alt="HappyRider" className="h-8 w-8 object-contain" />
             <span className="font-semibold text-primary">HappyRider</span>
           </Link>
 
-          <div className="flex items-center gap-4 text-sm">
-            {rider && isProfileComplete && (
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="online-toggle"
-                  checked={rider.is_online}
-                  onCheckedChange={() => void toggleOnline()}
-                />
-                <Label
-                  htmlFor="online-toggle"
-                  className={
-                    rider.is_online
-                      ? "font-medium text-green-600"
-                      : "text-muted-foreground"
-                  }
-                >
-                  {rider.is_online ? "ออนไลน์" : "ออฟไลน์"}
-                </Label>
-              </div>
-            )}
-            <span className="hidden text-muted-foreground sm:inline">
-              {email}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                await signOut();
-                navigate({ to: "/login" });
-              }}
-            >
-              ออกจากระบบ
-            </Button>
-          </div>
+          {rider && isProfileComplete && (
+            <div className="flex items-center gap-2">
+              <Switch
+                id="online-toggle"
+                checked={rider.is_online}
+                onCheckedChange={() => void toggleOnline()}
+              />
+              <Label
+                htmlFor="online-toggle"
+                className={
+                  rider.is_online
+                    ? "text-sm font-medium text-green-600"
+                    : "text-sm text-muted-foreground"
+                }
+              >
+                {rider.is_online ? "ออนไลน์" : "ออฟไลน์"}
+              </Label>
+            </div>
+          )}
         </div>
       </header>
-      <main className="pb-28">
+      <main className="pb-20">
         <Outlet />
       </main>
       <BottomNav />
