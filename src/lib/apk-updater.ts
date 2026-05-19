@@ -1,78 +1,88 @@
-import { Capacitor } from '@capacitor/core';
-import { Browser } from '@capacitor/browser';
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { FileOpener } from "@capacitor-community/file-opener";
+import { Browser } from "@capacitor/browser";
 
-export type ProgressCb = (percent: number) => void;
+export type ApkProgress = { percent: number; bytes: number; total: number };
 
-/**
- * Download APK to cache and open Android installer.
- * Falls back to opening the URL in the system browser when:
- *  - not on a native platform
- *  - Filesystem / FileOpener plugins are unavailable
- *  - any "not implemented" style error is thrown
- */
 export async function downloadAndInstallApk(
   url: string,
-  onProgress?: ProgressCb,
+  onProgress?: (p: ApkProgress) => void,
 ): Promise<void> {
-  const fallback = async () => {
+  const isNative = Capacitor.isNativePlatform();
+  const platform = isNative ? Capacitor.getPlatform() : "web";
+
+  if (!isNative || platform !== "android") {
     try {
       await Browser.open({ url });
     } catch {
-      window.open(url, '_blank');
+      window.open(url, "_blank");
     }
-  };
-
-  if (!Capacitor.isNativePlatform()) {
-    return fallback();
+    return;
   }
 
-  const hasFs = Capacitor.isPluginAvailable('Filesystem');
-  const hasOpener = Capacitor.isPluginAvailable('FileOpener');
-  if (!hasFs || !hasOpener) {
-    return fallback();
+  const hasFilesystem = Capacitor.isPluginAvailable("Filesystem");
+  const hasFileOpener = Capacitor.isPluginAvailable("FileOpener");
+  if (!hasFilesystem || !hasFileOpener) {
+    // APK เก่ายังไม่มี plugin → fallback browser
+    try {
+      await Browser.open({ url });
+    } catch {
+      window.open(url, "_blank");
+    }
+    return;
+  }
+
+  const fileName = `happyrider-update-${Date.now()}.apk`;
+  let listenerHandle: { remove: () => Promise<void> } | undefined;
+  if (onProgress) {
+    try {
+      listenerHandle = await Filesystem.addListener("progress", (event) => {
+        const total = event.contentLength || 0;
+        const bytes = event.bytes || 0;
+        const percent = total > 0 ? Math.round((bytes / total) * 100) : 0;
+        onProgress({ percent, bytes, total });
+      });
+    } catch {
+      /* ignore */
+    }
   }
 
   try {
-    const { Filesystem, Directory } = await import('@capacitor/filesystem');
-    const { FileOpener } = await import('@capacitor-community/file-opener');
-
-    const fileName = `HappyRider_${Date.now()}.apk`;
-
-    const progressListener = await Filesystem.addListener(
-      'progress',
-      (event: { bytes: number; contentLength: number }) => {
-        if (event.contentLength > 0 && onProgress) {
-          const pct = Math.round((event.bytes / event.contentLength) * 100);
-          onProgress(Math.min(99, pct));
-        }
-      },
-    );
-
-    try {
-      const result = await Filesystem.downloadFile({
-        url,
-        path: fileName,
-        directory: Directory.Cache,
-        progress: true,
-      });
-
-      onProgress?.(100);
-
-      const filePath = (result as { path?: string }).path;
-      if (!filePath) throw new Error('Download did not return a file path');
-
-      await FileOpener.open({
-        filePath,
-        contentType: 'application/vnd.android.package-archive',
-      });
-    } finally {
-      await progressListener.remove();
-    }
+    const result = await Filesystem.downloadFile({
+      url,
+      path: fileName,
+      directory: Directory.Cache,
+      progress: true,
+    });
+    if (!result.path) throw new Error("ไม่สามารถบันทึกไฟล์ APK ได้");
+    await FileOpener.open({
+      filePath: result.path,
+      contentType: "application/vnd.android.package-archive",
+      openWithDefault: true,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (/not implemented|UNIMPLEMENTED/i.test(msg)) {
-      return fallback();
+    if (
+      msg.includes("not implemented") ||
+      msg.includes("not available") ||
+      msg.includes("UNIMPLEMENTED")
+    ) {
+      try {
+        await Browser.open({ url });
+      } catch {
+        window.open(url, "_blank");
+      }
+      return;
     }
     throw err;
+  } finally {
+    if (listenerHandle) {
+      try {
+        await listenerHandle.remove();
+      } catch {
+        /* ignore */
+      }
+    }
   }
 }

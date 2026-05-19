@@ -3,11 +3,18 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { supabase } from '@/integrations/supabase/client';
 import { APP_VERSION, compareVersions } from '@/lib/app-version';
-import { downloadAndInstallApk } from '@/lib/apk-updater';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Download, AlertTriangle } from 'lucide-react';
+import { Download, AlertTriangle, Loader2 } from 'lucide-react';
+import { downloadAndInstallApk } from '@/lib/apk-updater';
+import { toast } from 'sonner';
 
 type AppConfig = {
   latest_version: string;
@@ -19,48 +26,43 @@ type AppConfig = {
 
 export function ForceUpdateGate() {
   const [config, setConfig] = useState<AppConfig | null>(null);
-  const [currentVersion, setCurrentVersion] = useState<string>(APP_VERSION);
-  const [mustUpdate, setMustUpdate] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [currentVersion, setCurrentVersion] = useState<string>(APP_VERSION);
+  const [mustUpdate, setMustUpdate] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-
     const check = async () => {
-      // ทำเฉพาะ native app — บนเว็บไม่ต้องเช็ค
       if (!Capacitor.isNativePlatform()) return;
-
-      const platform = Capacitor.getPlatform(); // 'android' | 'ios'
+      const platform = Capacitor.getPlatform();
       if (platform !== 'android' && platform !== 'ios') return;
 
-      // อ่านเวอร์ชันจริงจาก native app
       let version = APP_VERSION;
       try {
         const info = await CapApp.getInfo();
         version = info.version || APP_VERSION;
       } catch {
-        // bridge ไม่พร้อม — ใช้ค่า fallback
+        /* ignore */
       }
       if (cancelled) return;
       setCurrentVersion(version);
 
-      // แยก row ของไรเดอร์ออกจาก customer
+      // ⚠️ ฝั่งไรเดอร์ใช้ "android_rider"
       const { data, error } = await supabase
         .from('app_config')
-        .select('latest_version, min_supported_version, apk_download_url, release_notes, force_update')
+        .select(
+          'latest_version, min_supported_version, apk_download_url, release_notes, force_update',
+        )
         .eq('platform', 'android_rider')
         .maybeSingle();
 
       if (cancelled || error || !data) return;
       setConfig(data);
-
-      const belowMin = compareVersions(version, data.min_supported_version) < 0;
-      if (data.force_update || belowMin) {
-        setMustUpdate(true);
-      }
+      const belowMin =
+        compareVersions(version, data.min_supported_version) < 0;
+      if (data.force_update || belowMin) setMustUpdate(true);
     };
-
     void check();
     return () => {
       cancelled = true;
@@ -72,9 +74,15 @@ export function ForceUpdateGate() {
     setDownloading(true);
     setProgress(0);
     try {
-      await downloadAndInstallApk(config.apk_download_url, setProgress);
-    } catch (e) {
-      console.error('[force-update] download error:', e);
+      await downloadAndInstallApk(config.apk_download_url, ({ percent }) =>
+        setProgress(percent),
+      );
+      if (Capacitor.getPlatform() === 'android') {
+        toast.success('โหลดเสร็จแล้ว กดติดตั้งเพื่ออัปเดต');
+      }
+    } catch (err) {
+      console.error('[force-update] download error:', err);
+      toast.error(err instanceof Error ? err.message : 'ดาวน์โหลดไม่สำเร็จ');
     } finally {
       setDownloading(false);
     }
@@ -94,7 +102,9 @@ export function ForceUpdateGate() {
           <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
             <AlertTriangle className="h-7 w-7 text-primary" />
           </div>
-          <DialogTitle className="text-center text-xl">มีเวอร์ชันใหม่ของ HappyRider</DialogTitle>
+          <DialogTitle className="text-center text-xl">
+            มีเวอร์ชันใหม่ของ HappyRider
+          </DialogTitle>
           <DialogDescription className="text-center">
             กรุณาอัปเดตแอปก่อนใช้งานต่อ
           </DialogDescription>
@@ -107,13 +117,19 @@ export function ForceUpdateGate() {
           </div>
           <div className="flex items-center justify-between rounded-lg bg-primary/10 p-3">
             <span className="text-muted-foreground">เวอร์ชันล่าสุด</span>
-            <span className="font-mono font-semibold text-primary">{config.latest_version}</span>
+            <span className="font-mono font-semibold text-primary">
+              {config.latest_version}
+            </span>
           </div>
 
           {config.release_notes && (
             <div className="rounded-lg border border-border p-3">
-              <p className="mb-1 text-xs font-semibold text-muted-foreground">มีอะไรใหม่</p>
-              <p className="whitespace-pre-line text-sm">{config.release_notes}</p>
+              <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                มีอะไรใหม่
+              </p>
+              <p className="whitespace-pre-line text-sm">
+                {config.release_notes}
+              </p>
             </div>
           )}
         </div>
@@ -121,7 +137,9 @@ export function ForceUpdateGate() {
         {downloading && (
           <div className="space-y-1">
             <Progress value={progress} />
-            <p className="text-right text-xs text-muted-foreground">{progress}%</p>
+            <p className="text-right text-xs text-muted-foreground">
+              กำลังดาวน์โหลด {progress}%
+            </p>
           </div>
         )}
 
@@ -131,8 +149,17 @@ export function ForceUpdateGate() {
           size="lg"
           className="mt-2 w-full gap-2"
         >
-          <Download className="h-5 w-5" />
-          {downloading ? 'กำลังดาวน์โหลด...' : 'ดาวน์โหลดเวอร์ชันใหม่'}
+          {downloading ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              กำลังโหลด...
+            </>
+          ) : (
+            <>
+              <Download className="h-5 w-5" />
+              ดาวน์โหลดเวอร์ชันใหม่
+            </>
+          )}
         </Button>
 
         <p className="text-center text-xs text-muted-foreground">
