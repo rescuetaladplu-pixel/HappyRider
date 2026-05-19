@@ -56,22 +56,17 @@ function AuthenticatedLayout() {
   return (
     <RiderProvider>
       <OrdersProvider>
-        <RiderShell signOut={signOut} email={user.email ?? ""} />
+        <RiderShell />
       </OrdersProvider>
     </RiderProvider>
   );
 }
 
-function RiderShell({
-  signOut,
-  email,
-}: {
-  signOut: () => Promise<void>;
-  email: string;
-}) {
+function RiderShell() {
   const { rider, isProfileComplete, loading, toggleOnline } = useRider();
   const navigate = useNavigate();
   const location = useLocation();
+
 
   // Force profile completion before using the app
   useEffect(() => {
