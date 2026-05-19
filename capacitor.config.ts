@@ -18,6 +18,8 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: false,
+    // กัน webview ทับ status bar (บน) + navigation bar (ล่าง) บน Android edge-to-edge (API 35+)
+    adjustMarginsForEdgeToEdge: "force",
   },
   plugins: {
     SplashScreen: {
@@ -28,6 +30,12 @@ const config: CapacitorConfig = {
     },
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],
+    },
+    StatusBar: {
+      // ไม่ให้ overlay webview — ระบบจะกัน margin ให้เอง
+      overlaysWebView: false,
+      style: "DEFAULT",
+      backgroundColor: "#ffffff",
     },
   },
 };

@@ -13,6 +13,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { Toaster } from "@/components/ui/sonner";
 import { ForceUpdateGate } from "@/components/ForceUpdateGate";
+import { SystemBarsConfig } from "@/components/SystemBarsConfig";
 
 function NotFoundComponent() {
   return (
@@ -131,6 +132,7 @@ function RootComponent() {
         <AuthProvider>
           <Outlet />
           <ForceUpdateGate />
+          <SystemBarsConfig />
           <Toaster richColors position="top-center" />
         </AuthProvider>
       </ThemeProvider>
