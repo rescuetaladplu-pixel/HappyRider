@@ -86,7 +86,7 @@ function RiderShell({
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
+      <header className="border-b bg-background pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="font-semibold">
             HappyRider
