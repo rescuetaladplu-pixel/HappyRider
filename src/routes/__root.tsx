@@ -12,6 +12,7 @@ import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { Toaster } from "@/components/ui/sonner";
+import { ForceUpdateGate } from "@/components/ForceUpdateGate";
 
 function NotFoundComponent() {
   return (
@@ -129,6 +130,7 @@ function RootComponent() {
       <ThemeProvider>
         <AuthProvider>
           <Outlet />
+          <ForceUpdateGate />
           <Toaster richColors position="top-center" />
         </AuthProvider>
       </ThemeProvider>
