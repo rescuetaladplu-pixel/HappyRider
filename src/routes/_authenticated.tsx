@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { RiderProvider, useRider } from "@/lib/rider-context";
 import { OrdersProvider } from "@/lib/orders-context";
 import { BottomNav } from "@/components/BottomNav";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import logo from "@/assets/happyrider-logo.png";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
@@ -48,11 +50,7 @@ function AuthenticatedLayout() {
   }, [user, loading, isRider, roles, navigate]);
 
   if (loading || !user || !isRider) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        กำลังโหลด...
-      </div>
-    );
+    return <LoadingScreen message="กำลังโหลด..." />;
   }
 
   return (
@@ -88,8 +86,9 @@ function RiderShell({
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <Link to="/" className="font-semibold">
-            HappyRider
+          <Link to="/" className="flex items-center gap-2">
+            <img src={logo} alt="HappyRider" className="h-9 w-9 object-contain" />
+            <span className="font-semibold text-primary">HappyRider</span>
           </Link>
 
           <div className="flex items-center gap-4 text-sm">

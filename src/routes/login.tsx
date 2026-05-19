@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import logo from "@/assets/happyrider-logo.png";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Login — HappyRider" }] }),
@@ -32,10 +33,11 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8">
+      <img src={logo} alt="HappyRider" className="mb-4 h-28 w-28 object-contain" />
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>เข้าสู่ระบบ Rider</CardTitle>
+          <CardTitle className="text-center text-primary">เข้าสู่ระบบ Rider</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
