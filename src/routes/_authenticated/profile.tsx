@@ -288,6 +288,8 @@ function ProfilePage() {
 
         <ThemeCard />
 
+        <AppVersionCard />
+
         <Button type="submit" disabled={saving} className="w-full">
           {saving ? "กำลังบันทึก..." : "บันทึก"}
         </Button>
