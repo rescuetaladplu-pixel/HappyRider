@@ -55,14 +55,14 @@ export function BottomNav() {
             to="/"
             aria-label="หน้าแรก พร้อมรับงาน"
             className={cn(
-              "-mt-6 flex h-16 w-16 items-center justify-center rounded-full border-4 border-background bg-white shadow-lg transition-transform active:scale-95",
+              "-mt-4 flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-background bg-white shadow-md transition-transform active:scale-95",
               isHome && "ring-2 ring-primary/40",
             )}
           >
             <img
               src={runnerIcon}
               alt=""
-              className="h-12 w-12 object-contain"
+              className="h-9 w-9 object-contain"
             />
           </Link>
         </div>
@@ -72,7 +72,7 @@ export function BottomNav() {
         ))}
       </div>
       {isHome && (
-        <div className="pb-1 text-center text-[10px] font-medium text-primary">
+        <div className="pb-0.5 text-center text-[10px] font-medium text-primary">
           หน้าแรก
         </div>
       )}
