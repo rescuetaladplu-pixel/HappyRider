@@ -21,6 +21,8 @@ export function ForceUpdateGate() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [currentVersion, setCurrentVersion] = useState<string>(APP_VERSION);
   const [mustUpdate, setMustUpdate] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
