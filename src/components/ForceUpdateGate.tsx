@@ -69,10 +69,14 @@ export function ForceUpdateGate() {
 
   const handleUpdate = async () => {
     if (!config?.apk_download_url) return;
+    setDownloading(true);
+    setProgress(0);
     try {
-      await Browser.open({ url: config.apk_download_url });
-    } catch {
-      window.open(config.apk_download_url, '_blank');
+      await downloadAndInstallApk(config.apk_download_url, setProgress);
+    } catch (e) {
+      console.error('[force-update] download error:', e);
+    } finally {
+      setDownloading(false);
     }
   };
 
