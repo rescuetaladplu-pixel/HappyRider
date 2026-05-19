@@ -14,6 +14,7 @@ import { ThemeProvider } from "@/lib/theme-context";
 import { Toaster } from "@/components/ui/sonner";
 import { ForceUpdateGate } from "@/components/ForceUpdateGate";
 import { SystemBarsConfig } from "@/components/SystemBarsConfig";
+import { SafeAreaScrim } from "@/components/SafeAreaScrim";
 
 function NotFoundComponent() {
   return (
