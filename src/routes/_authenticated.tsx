@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-  const { user, loading, isRider, roles, signOut } = useAuth();
+  const { user, loading, isRider, roles } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
