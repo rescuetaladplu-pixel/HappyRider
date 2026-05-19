@@ -13,30 +13,58 @@ export function LocationPermissionBanner() {
       setState("unsupported");
       return;
     }
-    if (!("permissions" in navigator)) {
-      setState("unknown");
-      return;
-    }
+
+    let cancelled = false;
     let status: PermissionStatus | null = null;
-    const handler = () => {
-      if (status) setState(status.state as PermState);
+
+    // Probe by actually requesting position — works in Capacitor WebView
+    // where the Permissions API often returns "prompt" even after the
+    // native permission has been granted.
+    const probe = () => {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          if (!cancelled) setState("granted");
+        },
+        (err) => {
+          if (cancelled) return;
+          // PERMISSION_DENIED = 1
+          if (err.code === 1) setState("denied");
+          else setState("prompt");
+        },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
+      );
     };
-    navigator.permissions
-      .query({ name: "geolocation" as PermissionName })
-      .then((s) => {
-        status = s;
-        setState(s.state as PermState);
-        s.addEventListener("change", handler);
-      })
-      .catch(() => setState("unknown"));
+
+    if ("permissions" in navigator) {
+      const handler = () => {
+        if (!status || cancelled) return;
+        if (status.state === "granted") setState("granted");
+        else probe();
+      };
+      navigator.permissions
+        .query({ name: "geolocation" as PermissionName })
+        .then((s) => {
+          if (cancelled) return;
+          status = s;
+          if (s.state === "granted") setState("granted");
+          else probe();
+          s.addEventListener("change", handler);
+        })
+        .catch(() => probe());
+      return () => {
+        cancelled = true;
+        if (status) status.removeEventListener("change", handler);
+      };
+    }
+
+    probe();
     return () => {
-      if (status) status.removeEventListener("change", handler);
+      cancelled = true;
     };
-  }, []);
+  }, [rider?.is_online]);
 
   if (state === "granted" || state === "unknown") return null;
 
-  // Only nag when rider is trying to be online, or always show if denied/unsupported
   const isOnline = rider?.is_online ?? false;
   if (state === "prompt" && !isOnline) return null;
 
