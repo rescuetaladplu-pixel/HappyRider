@@ -55,9 +55,13 @@ export function BottomNav() {
             to="/"
             aria-label="หน้าแรก พร้อมรับงาน"
             className={cn(
-              "-mt-4 flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-background bg-white shadow-md transition-transform active:scale-95",
-              isHome && "ring-2 ring-primary/40",
+              "-mt-7 flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-background bg-white shadow-md transition-transform active:scale-95",
             )}
+            style={
+              isHome
+                ? { animation: "home-glow 1.8s ease-in-out infinite" }
+                : undefined
+            }
           >
             <img
               src={runnerIcon}
@@ -71,11 +75,6 @@ export function BottomNav() {
           <NavItem key={it.to} item={it} active={path === it.to} />
         ))}
       </div>
-      {isHome && (
-        <div className="pb-0.5 text-center text-[10px] font-medium text-primary">
-          หน้าแรก
-        </div>
-      )}
     </nav>
   );
 }
