@@ -48,11 +48,7 @@ function AuthenticatedLayout() {
   }, [user, loading, isRider, roles, navigate]);
 
   if (loading || !user || !isRider) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        กำลังโหลด...
-      </div>
-    );
+    return <LoadingScreen message="กำลังโหลด..." />;
   }
 
   return (
