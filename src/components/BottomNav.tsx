@@ -55,7 +55,7 @@ export function BottomNav() {
             to="/"
             aria-label="หน้าแรก พร้อมรับงาน"
             className={cn(
-              "-mt-7 flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-background bg-white shadow-md transition-transform active:scale-95",
+              "-mt-10 flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-background bg-white shadow-md transition-transform active:scale-95",
             )}
             style={
               isHome
@@ -66,7 +66,7 @@ export function BottomNav() {
             <img
               src={runnerIcon}
               alt=""
-              className="h-9 w-9 object-contain"
+              className="h-10 w-10 object-contain"
             />
           </Link>
         </div>
