@@ -5,10 +5,11 @@ import {
   useLocation,
   Link,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
+
 
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
