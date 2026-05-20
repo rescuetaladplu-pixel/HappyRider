@@ -87,18 +87,19 @@ function RiderShell() {
           </Link>
 
           {rider && isProfileComplete && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Switch
                 id="online-toggle"
                 checked={rider.is_online}
                 onCheckedChange={() => void toggleOnline()}
+                className="h-8 w-14 [&>span]:h-7 [&>span]:w-7 [&[data-state=checked]>span]:translate-x-6"
               />
               <Label
                 htmlFor="online-toggle"
                 className={
                   rider.is_online
-                    ? "text-sm font-medium text-green-600"
-                    : "text-sm text-muted-foreground"
+                    ? "text-base font-semibold text-green-600"
+                    : "text-base text-muted-foreground"
                 }
               >
                 {rider.is_online ? "ออนไลน์" : "ออฟไลน์"}
