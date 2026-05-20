@@ -93,47 +93,52 @@ function PoolCard({
 
   return (
     <div className="rounded-lg border bg-card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <div className="font-semibold">
-              {order.restaurants?.name ?? "ร้านอาหาร"}
-            </div>
-            {order.status === "awaiting_confirmations" && (
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-200">
-                จองล่วงหน้า
-              </span>
-            )}
-          </div>
-          <div className="mt-1 text-sm text-muted-foreground">
-            📍 {order.restaurants?.address ?? "—"}
-            {riderToRestaurantKm != null && (
-              <span className="ml-2 text-xs text-foreground">
-                ไปร้านอาหาร - {formatKm(riderToRestaurantKm)}
-              </span>
-            )}
-          </div>
-          <div className="mt-1 text-sm text-muted-foreground">
-            🏠 {order.delivery_address ?? "—"}
-            {restaurantToCustomerKm != null && (
-              <span className="ml-2 text-xs text-foreground">
-                ไปส่งลูกค้า - {formatKm(restaurantToCustomerKm)}
-              </span>
-            )}
-          </div>
-          {order.notes && (
-            <div className="mt-2 rounded bg-muted/50 p-2 text-xs">
-              📝 {order.notes}
-            </div>
-          )}
+      {/* Quick-scan summary: pickup distance | delivery distance | fee */}
+      <div className="mb-3 grid grid-cols-3 gap-2 rounded-lg border bg-muted/40 p-2 text-center">
+        <div className="flex flex-col items-center">
+          <span className="text-[10px] text-muted-foreground">🏍️ ไปรับ</span>
+          <span className="text-base font-bold leading-tight">
+            {riderToRestaurantKm != null ? formatKm(riderToRestaurantKm) : "—"}
+          </span>
         </div>
-        <div className="text-right">
-          <div className="text-xs text-muted-foreground">ค่าส่ง</div>
-          <div className="text-lg font-bold text-green-600">
+        <div className="flex flex-col items-center border-x">
+          <span className="text-[10px] text-muted-foreground">📦 ไปส่ง</span>
+          <span className="text-base font-bold leading-tight">
+            {restaurantToCustomerKm != null ? formatKm(restaurantToCustomerKm) : "—"}
+          </span>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="text-[10px] text-muted-foreground">💰 ค่าส่ง</span>
+          <span className="text-base font-bold leading-tight text-green-600">
             ฿{fee.toFixed(0)}
-          </div>
+          </span>
         </div>
       </div>
+
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <div className="font-semibold truncate">
+            {order.restaurants?.name ?? "ร้านอาหาร"}
+          </div>
+          {order.status === "awaiting_confirmations" && (
+            <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              จองล่วงหน้า
+            </span>
+          )}
+        </div>
+        <div className="mt-1 text-sm text-muted-foreground">
+          📍 {order.restaurants?.address ?? "—"}
+        </div>
+        <div className="mt-1 text-sm text-muted-foreground">
+          🏠 {order.delivery_address ?? "—"}
+        </div>
+        {order.notes && (
+          <div className="mt-2 rounded bg-muted/50 p-2 text-xs">
+            📝 {order.notes}
+          </div>
+        )}
+      </div>
+
       <Button
         className="mt-3 w-full"
         onClick={handleClaim}
