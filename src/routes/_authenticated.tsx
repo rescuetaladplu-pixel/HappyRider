@@ -108,11 +108,12 @@ function RiderShell() {
                 className={
                   "h-7 w-[68px] [&>span]:h-6 [&>span]:w-6 [&[data-state=checked]>span]:translate-x-[40px] " +
                   "data-[loading=true]:opacity-90 " +
-                  "data-[loading=true][data-state=unchecked]:bg-primary/40 " +
-                  "data-[loading=true][data-state=unchecked]>span:translate-x-[18px] " +
-                  "data-[loading=true][data-state=checked]>span:translate-x-[22px] " +
+                  "data-[loading=true]:data-[state=unchecked]:bg-primary/40 " +
+                  "[&[data-loading=true][data-state=unchecked]>span]:translate-x-[18px] " +
+                  "[&[data-loading=true][data-state=checked]>span]:translate-x-[22px] " +
                   "[&[data-loading=true]>span]:animate-pulse"
                 }
+
               />
               <Label
                 htmlFor="online-toggle"
