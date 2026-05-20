@@ -1,5 +1,9 @@
-// WebAudio notification presets — no asset files required.
-// Each preset schedules a short (~0.8-1.2s) sequence. Loud + distinct.
+// Notification sound presets — MUST match HappyEat shared contract exactly
+// (channel IDs `orders_siren`, `orders_airhorn`, `orders_emergency`).
+// User's pick is persisted to `profiles.notification_sound` so backend FCM
+// payloads target the correct Android channel for this rider.
+
+import { supabase } from "@/integrations/supabase/client";
 
 let ctx: AudioContext | null = null;
 
@@ -7,13 +11,7 @@ const SOUND_KEY = "happyrider:notification-sound";
 const PRESET_KEY = "happyrider:notification-preset";
 const SOUND_EVENT = "happyrider:notification-sound-changed";
 
-export type SoundPresetId =
-  | "classic"
-  | "siren"
-  | "alarm"
-  | "chime"
-  | "horn"
-  | "alert";
+export type SoundPresetId = "siren" | "airhorn" | "emergency";
 
 export interface SoundPreset {
   id: SoundPresetId;
@@ -22,12 +20,9 @@ export interface SoundPreset {
 }
 
 export const SOUND_PRESETS: SoundPreset[] = [
-  { id: "classic", label: "ปี๊บคู่ (มาตรฐาน)", description: "เสียงสั้น 2 ครั้ง" },
-  { id: "siren", label: "ไซเรน", description: "เสียงหวอกวาดสูง-ต่ำ" },
-  { id: "alarm", label: "ปลุก", description: "ปี๊บถี่ๆ 4 ครั้ง" },
-  { id: "chime", label: "ระฆัง", description: "3 โน้ตไล่ขึ้น" },
-  { id: "horn", label: "แตร", description: "เสียงต่ำดังลั่น" },
-  { id: "alert", label: "เตือนภัย", description: "ปี๊บสูงต่อเนื่อง" },
+  { id: "siren", label: "Siren ตำรวจ (แนะนำ)", description: "ไซเรนกวาดสองโทน ดังมาก" },
+  { id: "airhorn", label: "Air Horn แตรลม", description: "แตรลมโทนต่ำ ก้องสนาม สะเทือนหู" },
+  { id: "emergency", label: "Emergency รถพยาบาล", description: "สลับสองโทนเร็วๆ คล้ายรถฉุกเฉิน" },
 ];
 
 // ---------------- Settings ----------------
@@ -43,15 +38,47 @@ export function setNotificationSoundEnabled(enabled: boolean) {
 }
 
 export function getNotificationPreset(): SoundPresetId {
-  if (typeof window === "undefined") return "classic";
+  if (typeof window === "undefined") return "siren";
   const v = localStorage.getItem(PRESET_KEY) as SoundPresetId | null;
-  return v && SOUND_PRESETS.some((p) => p.id === v) ? v : "classic";
+  return v && SOUND_PRESETS.some((p) => p.id === v) ? v : "siren";
 }
 
 export function setNotificationPreset(id: SoundPresetId) {
   if (typeof window === "undefined") return;
   localStorage.setItem(PRESET_KEY, id);
   window.dispatchEvent(new CustomEvent(SOUND_EVENT, { detail: id }));
+  // Persist to DB so backend FCM payload uses the right channel
+  void (async () => {
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u.user?.id;
+      if (!uid) return;
+      await supabase.from("profiles").update({ notification_sound: id }).eq("id", uid);
+    } catch (e) {
+      console.warn("[notification-sound] persist pref failed", e);
+    }
+  })();
+}
+
+/** Pull DB pref into local cache on app boot. */
+export async function syncNotificationPresetFromDB(): Promise<void> {
+  try {
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u.user?.id;
+    if (!uid) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("notification_sound")
+      .eq("id", uid)
+      .maybeSingle();
+    const v = (data as { notification_sound?: string } | null)?.notification_sound;
+    if (v && SOUND_PRESETS.some((p) => p.id === v)) {
+      localStorage.setItem(PRESET_KEY, v);
+      window.dispatchEvent(new CustomEvent(SOUND_EVENT, { detail: v }));
+    }
+  } catch {
+    // ignore — keep local pref
+  }
 }
 
 export function onNotificationSoundChange(cb: (enabled: boolean) => void) {
@@ -64,7 +91,7 @@ export function onNotificationSoundChange(cb: (enabled: boolean) => void) {
   return () => window.removeEventListener(SOUND_EVENT, handler);
 }
 
-// ---------------- Audio engine ----------------
+// ---------------- Audio engine (WebAudio fallback for preview) ----------------
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (ctx) return ctx;
@@ -107,45 +134,33 @@ function playPreset(id: SoundPresetId) {
   if (!ac) return;
   const t = ac.currentTime;
   switch (id) {
-    case "classic":
-      tone(ac, t, 0.18, 880, "sine", 0.3);
-      tone(ac, t + 0.2, 0.22, 1320, "sine", 0.3);
-      break;
     case "siren":
-      tone(ac, t, 0.5, [600, 1400], "sawtooth", 0.35);
-      tone(ac, t + 0.5, 0.5, [1400, 600], "sawtooth", 0.35);
+      tone(ac, t, 0.5, [600, 1200], "sawtooth", 0.4);
+      tone(ac, t + 0.5, 0.5, [1200, 600], "sawtooth", 0.4);
+      tone(ac, t + 1.0, 0.5, [600, 1200], "sawtooth", 0.4);
       break;
-    case "alarm":
+    case "airhorn":
+      tone(ac, t, 0.9, 220, "sawtooth", 0.4);
+      tone(ac, t, 0.9, 330, "sawtooth", 0.3);
+      tone(ac, t, 0.9, 110, "sawtooth", 0.35);
+      break;
+    case "emergency":
       for (let i = 0; i < 4; i++) {
-        tone(ac, t + i * 0.18, 0.12, 1500, "square", 0.3);
-      }
-      break;
-    case "chime":
-      tone(ac, t, 0.35, 784, "triangle", 0.35); // G5
-      tone(ac, t + 0.18, 0.35, 988, "triangle", 0.35); // B5
-      tone(ac, t + 0.36, 0.55, 1175, "triangle", 0.35); // D6
-      break;
-    case "horn":
-      tone(ac, t, 0.6, 220, "square", 0.35);
-      tone(ac, t, 0.6, 330, "sawtooth", 0.2);
-      break;
-    case "alert":
-      for (let i = 0; i < 5; i++) {
-        tone(ac, t + i * 0.13, 0.1, 2000, "square", 0.28);
+        tone(ac, t + i * 0.32, 0.28, 950, "sawtooth", 0.35);
+        tone(ac, t + i * 0.32 + 0.16, 0.28, 650, "sawtooth", 0.35);
       }
       break;
   }
 }
 
-// Prefer the actual .mp3 used by the native channel — so what the user
-// previews on web matches what Android plays. Falls back to WebAudio synth.
+// Prefer the .mp3 used by the native channel so web preview matches Android.
 let mp3Cache: Record<string, HTMLAudioElement> = {};
 function playMp3(id: SoundPresetId): boolean {
   if (typeof window === "undefined" || typeof Audio === "undefined") return false;
   try {
     let el = mp3Cache[id];
     if (!el) {
-      el = new Audio(`/sounds/happyrider_${id}.mp3`);
+      el = new Audio(`/sounds/${id}.mp3`);
       el.preload = "auto";
       mp3Cache[id] = el;
     }
@@ -171,7 +186,6 @@ export function playBeep(presetOverride?: SoundPresetId) {
     // ignore
   }
 }
-
 
 // ---- Looping beep (foreground only) ----
 let loopTimer: ReturnType<typeof setInterval> | null = null;

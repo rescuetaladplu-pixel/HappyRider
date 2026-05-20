@@ -1,15 +1,10 @@
 // Native Android notification channels via Capacitor PushNotifications.
-// Each preset gets its own channel with a unique sound from res/raw.
-// User's preferred channel id is persisted in localStorage and (optionally)
-// reported to the backend so FCM payloads can target the right channel.
-//
-// REQUIREMENTS (must be done on the Android build machine):
-//   1) Copy android-resources/raw/*.mp3 → android/app/src/main/res/raw/
-//   2) Run: npx cap sync android && rebuild APK
-//   3) Backend (happyeat) FCM payload for this rider must set:
-//        android.notification.channel_id = "happyrider_<preset>"
-//        android.notification.sound      = "happyrider_<preset>"
-//      Without channel_id the system uses the default channel sound.
+// MUST match HappyEat SHARED_CONTRACT.md (entry 2026-05-20) exactly:
+//   channel IDs: orders_siren | orders_airhorn | orders_emergency
+//   sound files: siren.mp3   | airhorn.mp3   | emergency.mp3
+//                in android/app/src/main/res/raw/
+// User's preferred preset is stored in profiles.notification_sound and the
+// HappyEat backend reads it to set android.notification.channel_id per push.
 
 import { Capacitor } from "@capacitor/core";
 import {
@@ -20,11 +15,12 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import {
   SOUND_PRESETS,
   getNotificationPreset,
+  syncNotificationPresetFromDB,
   playBeep,
   type SoundPresetId,
 } from "@/lib/notification-sound";
 
-const CHANNEL_PREFIX = "happyrider_";
+const CHANNEL_PREFIX = "orders_";
 
 export function channelIdFor(preset: SoundPresetId): string {
   return CHANNEL_PREFIX + preset;
@@ -32,8 +28,11 @@ export function channelIdFor(preset: SoundPresetId): string {
 
 let initialized = false;
 
+/** Public entry — called from rider-context on auth. Safe to call repeatedly. */
 export async function initNativeNotifications() {
   if (initialized) return;
+  // Pull DB pref into local cache regardless of platform
+  void syncNotificationPresetFromDB();
   if (!Capacitor.isNativePlatform()) return;
   if (Capacitor.getPlatform() !== "android") return;
   initialized = true;
@@ -51,16 +50,15 @@ export async function initNativeNotifications() {
 
     await LocalNotifications.requestPermissions();
 
-    // 2) Create one channel per preset (each with its own loud sound).
+    // 2) Create one channel per preset, sound name = res/raw/<preset>.mp3
     //    Android caches channels — once created, sound cannot change.
-    //    Channel id matches the mp3 filename in res/raw (without extension).
     for (const p of SOUND_PRESETS) {
       const ch: Channel = {
-        id: channelIdFor(p.id),
+        id: channelIdFor(p.id), // orders_<preset>
         name: `HappyRider — ${p.label}`,
         description: `แจ้งเตือนงานใหม่ (${p.description})`,
-        sound: channelIdFor(p.id), // res/raw/happyrider_<preset>.mp3
-        importance: 5, // IMPORTANCE_HIGH (heads-up)
+        sound: p.id, // res/raw/<preset>.mp3 (siren / airhorn / emergency)
+        importance: 5,
         visibility: 1,
         vibration: true,
         lights: true,
@@ -75,9 +73,8 @@ export async function initNativeNotifications() {
     // 3) Register for FCM token
     await PushNotifications.register();
 
-    // 4) Foreground: Android suppresses notification UI when app is open.
-    //    Re-emit via LocalNotifications using the user's chosen channel so
-    //    the loud sound plays even with the app in foreground.
+    // 4) Foreground: re-emit via LocalNotifications on the user's chosen channel
+    //    so the loud sound plays even with the app in foreground.
     PushNotifications.addListener("pushNotificationReceived", async (notif) => {
       const preset = getNotificationPreset();
       const channelId = channelIdFor(preset);
@@ -98,7 +95,6 @@ export async function initNativeNotifications() {
         });
       } catch (e) {
         console.warn("[native-notif] local schedule failed", e);
-        // Fallback: web beep (foreground only)
         playBeep();
       }
     });
