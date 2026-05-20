@@ -31,6 +31,7 @@ export interface OrderRow {
   delivery_lng: number | null;
   subtotal: number | null;
   delivery_fee: number | null;
+  delivery_distance_km: number | null;
   notes: string | null;
   created_at: string;
   restaurants: RestaurantRef | null;
@@ -39,7 +40,7 @@ export interface OrderRow {
 const SELECT = `
   id, restaurant_id, rider_id, status,
   delivery_address, delivery_lat, delivery_lng,
-  subtotal, delivery_fee, notes, created_at,
+  subtotal, delivery_fee, delivery_distance_km, notes, created_at,
   restaurants(name, address, latitude, longitude, phone)
 `;
 
