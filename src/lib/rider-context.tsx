@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { initNativeNotifications } from "@/lib/native-notifications";
 
 export interface RiderProfile {
   first_name: string | null;
@@ -97,6 +98,8 @@ export function RiderProvider({ children }: { children: ReactNode }) {
     }
     setLoading(true);
     fetchAll();
+    // Init native push channels (Android only, no-op on web)
+    void initNativeNotifications();
   }, [user, fetchAll]);
 
   const stopWatch = useCallback(() => {
