@@ -69,7 +69,7 @@ function ThemeCard() {
 
 function NotificationSoundCard() {
   const [soundOn, setSoundOn] = useState(true);
-  const [preset, setPreset] = useState<SoundPresetId>("classic");
+  const [preset, setPreset] = useState<SoundPresetId>("siren");
 
   useEffect(() => {
     setSoundOn(isNotificationSoundEnabled());
