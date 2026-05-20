@@ -137,15 +137,41 @@ function playPreset(id: SoundPresetId) {
   }
 }
 
+// Prefer the actual .mp3 used by the native channel — so what the user
+// previews on web matches what Android plays. Falls back to WebAudio synth.
+let mp3Cache: Record<string, HTMLAudioElement> = {};
+function playMp3(id: SoundPresetId): boolean {
+  if (typeof window === "undefined" || typeof Audio === "undefined") return false;
+  try {
+    let el = mp3Cache[id];
+    if (!el) {
+      el = new Audio(`/sounds/happyrider_${id}.mp3`);
+      el.preload = "auto";
+      mp3Cache[id] = el;
+    }
+    el.currentTime = 0;
+    el.volume = 1.0;
+    const p = el.play();
+    if (p && typeof p.then === "function") {
+      p.catch(() => playPreset(id));
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function playBeep(presetOverride?: SoundPresetId) {
   if (typeof window === "undefined") return;
   if (!isNotificationSoundEnabled() && !presetOverride) return;
+  const id = presetOverride ?? getNotificationPreset();
   try {
-    playPreset(presetOverride ?? getNotificationPreset());
+    if (!playMp3(id)) playPreset(id);
   } catch {
     // ignore
   }
 }
+
 
 // ---- Looping beep (foreground only) ----
 let loopTimer: ReturnType<typeof setInterval> | null = null;
