@@ -1,6 +1,8 @@
 # HappyRider — Native Android notification sounds
 
-ไฟล์เสียงแจ้งเตือน 6 แบบ (.mp3, mono, 44.1kHz) สำหรับใช้เป็น Android Notification Channel sound ผ่าน Capacitor `@capacitor/push-notifications`.
+ไฟล์เสียงแจ้งเตือน **3 แบบ** สำหรับใช้เป็น Android Notification Channel sound ผ่าน Capacitor `@capacitor/push-notifications`
+
+> ⚠️ ชื่อไฟล์และ channel ID ต้อง **ตรงเป๊ะ** กับ HappyEat shared contract (`docs/SHARED_CONTRACT.md` ของห้อง happyeat entry 2026-05-20) ไม่งั้น push จาก backend จะไม่ออกเสียงที่ไรเดอร์เลือก
 
 ## วิธีใช้ (ต้องทำที่เครื่อง build APK)
 
@@ -18,49 +20,31 @@
 
 3. ติดตั้ง APK ใหม่บนมือถือไรเดอร์
 
-## ชื่อไฟล์ (ห้ามแก้)
+## ชื่อไฟล์ + Channel ID (ห้ามแก้)
 
-ชื่อไฟล์ต้องตรงกับ `channelId` ใน `src/lib/native-notifications.ts`:
-
-| ไฟล์ | Channel ID | เสียง |
-|------|------------|------|
-| `happyrider_classic.mp3` | `happyrider_classic` | ปี๊บคู่มาตรฐาน |
-| `happyrider_siren.mp3`   | `happyrider_siren`   | ไซเรนหวอ |
-| `happyrider_alarm.mp3`   | `happyrider_alarm`   | ปลุกถี่ๆ |
-| `happyrider_chime.mp3`   | `happyrider_chime`   | ระฆัง 3 โน้ต |
-| `happyrider_horn.mp3`    | `happyrider_horn`    | แตรต่ำ |
-| `happyrider_alert.mp3`   | `happyrider_alert`   | เตือนภัยสูง |
+| ไฟล์ใน `res/raw/` | Channel ID | preset |
+|---|---|---|
+| `siren.mp3`     | `orders_siren`     | ไซเรนตำรวจ (default) |
+| `airhorn.mp3`   | `orders_airhorn`   | แตรลม |
+| `emergency.mp3` | `orders_emergency` | รถพยาบาล |
 
 ชื่อไฟล์ใน `res/raw/` ต้อง: **ตัวพิมพ์เล็ก + a-z 0-9 _ เท่านั้น** (ห้ามมี - หรือเว้นวรรค)
 
-## สิ่งที่ฝั่งห้อง HappyEat ต้องทำ (Backend FCM payload)
+## Flow ฝั่ง Backend (happyeat รับผิดชอบ)
 
-แอปฝั่งไรเดอร์สร้าง Notification Channel ครบทั้ง 6 แบบให้ระบบ Android อัตโนมัติเมื่อเข้าแอปครั้งแรก แต่จะให้ Android **เล่นเสียงตามที่ไรเดอร์เลือก** ได้ ต้องอย่างใดอย่างหนึ่ง:
-
-**ทางเลือก A (แนะนำ) — ส่ง FCM พร้อม channel_id**
-ฝั่ง happyeat ต้องเก็บ `preferred_channel_id` ของไรเดอร์ (เช่นในตาราง `rider_push_tokens`) แล้วใส่ใน FCM payload:
-```json
-{
-  "to": "<fcm_token>",
-  "android": {
-    "notification": {
-      "channel_id": "happyrider_alert",
-      "sound": "happyrider_alert"
+- ไรเดอร์เลือก preset → save ลง `profiles.notification_sound` (column ที่ happyeat เพิ่มให้แล้ว)
+- Backend ใส่ใน FCM payload:
+  ```json
+  {
+    "android": {
+      "notification": {
+        "channel_id": "orders_<preset>",
+        "sound": "<preset>"
+      }
     }
   }
-}
-```
-
-**ทางเลือก B (ง่ายกว่า) — ส่ง data-only FCM**
-ส่งเฉพาะ `data` payload (ไม่มี `notification`). ฝั่งไรเดอร์จะเรียก `LocalNotifications.schedule({ channelId: <preset ของไรเดอร์> })` เอง → ใช้เสียงตามที่ไรเดอร์เลือกได้ทันที โดยฝั่ง happyeat ไม่ต้องรู้ preset
-```json
-{
-  "to": "<fcm_token>",
-  "data": { "title": "งานใหม่!", "body": "ร้านครัวคุณยาย", "order_id": "..." }
-}
-```
-⚠️ ข้อจำกัด: บางรุ่นของ Android (โดยเฉพาะที่ปิดแอป kill จากเมนู recents) อาจไม่ปลุก data-only FCM ขึ้นมา
+  ```
 
 ## หมายเหตุ
 - ไฟล์ใน `public/sounds/` เป็นชุดเดียวกัน ใช้สำหรับพรีวิวบนเว็บ/webview ในหน้า ตั้งค่า → เสียงแจ้งเตือน
-- ถ้าจะเพิ่ม/แก้เสียง ต้อง rebuild APK ใหม่เสมอ (เสียงฝัง native ไม่ใช่ web)
+- ถ้าจะเพิ่ม/เปลี่ยนเสียง ต้อง **rebuild APK ใหม่** + ใช้ channel ID ใหม่ (Android cache channel — id เดิม sound เปลี่ยนไม่ได้) และ **ประสานกับห้อง happyeat ให้เปลี่ยนพร้อมกัน**
