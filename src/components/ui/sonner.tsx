@@ -6,6 +6,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       className="toaster group"
+      style={
+        {
+          // push toasts below the device status bar / safe area
+          top: "calc(var(--app-safe-top, env(safe-area-inset-top, 0px)) + 12px)",
+        } as React.CSSProperties
+      }
       toastOptions={{
         classNames: {
           toast:
