@@ -67,7 +67,17 @@ function RiderShell() {
   const { rider, isProfileComplete, loading, toggleOnline } = useRider();
   const navigate = useNavigate();
   const location = useLocation();
+  const [toggling, setToggling] = useState(false);
 
+  const handleToggle = async () => {
+    if (toggling) return;
+    setToggling(true);
+    try {
+      await toggleOnline();
+    } finally {
+      setToggling(false);
+    }
+  };
 
   // Force profile completion before using the app
   useEffect(() => {
@@ -92,8 +102,17 @@ function RiderShell() {
               <Switch
                 id="online-toggle"
                 checked={rider.is_online}
-                onCheckedChange={() => void toggleOnline()}
-                className="h-7 w-[52px] [&>span]:h-6 [&>span]:w-6 [&[data-state=checked]>span]:translate-x-6"
+                onCheckedChange={handleToggle}
+                disabled={toggling}
+                data-loading={toggling ? "true" : undefined}
+                className={
+                  "h-7 w-[68px] [&>span]:h-6 [&>span]:w-6 [&[data-state=checked]>span]:translate-x-[40px] " +
+                  "data-[loading=true]:opacity-90 " +
+                  "data-[loading=true][data-state=unchecked]:bg-primary/40 " +
+                  "data-[loading=true][data-state=unchecked]>span:translate-x-[18px] " +
+                  "data-[loading=true][data-state=checked]>span:translate-x-[22px] " +
+                  "[&[data-loading=true]>span]:animate-pulse"
+                }
               />
               <Label
                 htmlFor="online-toggle"
@@ -103,7 +122,13 @@ function RiderShell() {
                     : "text-sm text-muted-foreground"
                 }
               >
-                {rider.is_online ? "ออนไลน์" : "ออฟไลน์"}
+                {toggling
+                  ? rider.is_online
+                    ? "กำลังออฟไลน์..."
+                    : "กำลังออนไลน์..."
+                  : rider.is_online
+                    ? "ออนไลน์"
+                    : "ออฟไลน์"}
               </Label>
             </div>
           )}
@@ -116,3 +141,4 @@ function RiderShell() {
     </div>
   );
 }
+
