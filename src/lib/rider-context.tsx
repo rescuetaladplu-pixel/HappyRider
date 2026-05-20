@@ -151,9 +151,9 @@ export function RiderProvider({ children }: { children: ReactNode }) {
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
     );
 
-    // Periodic forced refresh every 15s — keeps coords fresh even when
-    // the rider is stationary, so OSRM ranking on the happyeat side
-    // always sees up-to-date positions.
+    // Periodic forced refresh every 5s — keeps coords fresh even when
+    // the rider is stationary, so wave dispatch ranking on the happyeat
+    // side always sees up-to-date positions.
     intervalIdRef.current = setInterval(() => {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -164,7 +164,7 @@ export function RiderProvider({ children }: { children: ReactNode }) {
         },
         { enableHighAccuracy: true, maximumAge: 10_000, timeout: 8_000 },
       );
-    }, 15_000);
+    }, 5_000);
   }, [user, writePosition]);
 
   // Manage watch lifecycle based on online state
