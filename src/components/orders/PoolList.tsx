@@ -85,9 +85,11 @@ function PoolCard({
       ? haversineKm(riderLat, riderLng, rLat, rLng)
       : null;
   const restaurantToCustomerKm =
-    rLat != null && rLng != null && dLat != null && dLng != null
-      ? haversineKm(rLat, rLng, dLat, dLng)
-      : null;
+    order.delivery_distance_km != null
+      ? order.delivery_distance_km
+      : rLat != null && rLng != null && dLat != null && dLng != null
+        ? haversineKm(rLat, rLng, dLat, dLng)
+        : null;
 
   return (
     <div className="rounded-lg border bg-card p-4">
