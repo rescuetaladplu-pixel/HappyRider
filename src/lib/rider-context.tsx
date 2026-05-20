@@ -255,8 +255,7 @@ export function RiderProvider({ children }: { children: ReactNode }) {
   const isProfileComplete = !!(
     profile?.first_name &&
     profile?.last_name &&
-    profile?.phone &&
-    rider?.vehicle_type
+    profile?.phone
   );
 
   return (

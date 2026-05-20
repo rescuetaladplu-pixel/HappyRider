@@ -1,6 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { Settings, ChevronRight, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useRider } from "@/lib/rider-context";
@@ -14,86 +15,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import {
-  isNotificationSoundEnabled,
-  setNotificationSoundEnabled,
-  playBeep,
-} from "@/lib/notification-sound";
-import { Volume2, Sun, Moon, Monitor } from "lucide-react";
-import { useTheme, type ThemeMode } from "@/lib/theme-context";
-import { AppVersionCard } from "@/components/AppVersionCard";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({ meta: [{ title: "โปรไฟล์ — HappyRider" }] }),
   component: ProfilePage,
 });
 
-type VehicleType = "motorcycle" | "bicycle" | "car";
-
-function ThemeCard() {
-  const { theme, setTheme } = useTheme();
-  const options: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
-    { value: "light", label: "กลางวัน", icon: Sun },
-    { value: "dark", label: "กลางคืน", icon: Moon },
-    { value: "system", label: "ตามระบบ", icon: Monitor },
-  ];
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>การแสดงผลหน้าจอ</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-2">
-          {options.map((o) => {
-            const Icon = o.icon;
-            const active = theme === o.value;
-            return (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => setTheme(o.value)}
-                className={
-                  "flex flex-col items-center justify-center gap-1 rounded-md border px-3 py-3 text-sm transition-colors " +
-                  (active
-                    ? "border-primary bg-primary/10 text-foreground"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted")
-                }
-              >
-                <Icon className="h-5 w-5" />
-                <span>{o.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function ProfilePage() {
   const { user } = useAuth();
-  const { profile, rider, loading, refresh, isProfileComplete } = useRider();
+  const { profile, loading, refresh, isProfileComplete } = useRider();
   const navigate = useNavigate();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
-  const [vehicleType, setVehicleType] = useState<VehicleType | "">("");
-  const [licensePlate, setLicensePlate] = useState("");
   const [saving, setSaving] = useState(false);
-  const [soundOn, setSoundOn] = useState(true);
-
-  useEffect(() => {
-    setSoundOn(isNotificationSoundEnabled());
-  }, []);
 
   useEffect(() => {
     if (profile) {
@@ -101,14 +37,9 @@ function ProfilePage() {
       setLastName(profile.last_name ?? "");
       setPhone(profile.phone ?? "");
     }
-    if (rider) {
-      setVehicleType((rider.vehicle_type as VehicleType) || "");
-      setLicensePlate(rider.license_plate ?? "");
-    }
-  }, [profile, rider]);
+  }, [profile]);
 
   const phoneOk = /^\d{10}$/.test(phone);
-  const plateRequired = vehicleType !== "" && vehicleType !== "bicycle";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -122,42 +53,24 @@ function ProfilePage() {
       toast.error("เบอร์โทรต้องเป็นตัวเลข 10 หลัก");
       return;
     }
-    if (!vehicleType) {
-      toast.error("กรุณาเลือกประเภทยานพาหนะ");
-      return;
-    }
-    if (plateRequired && !licensePlate.trim()) {
-      toast.error("กรุณากรอกเลขทะเบียน");
-      return;
-    }
 
     setSaving(true);
-    const [{ error: pErr }, { error: rErr }] = await Promise.all([
-      supabase.from("profiles").upsert({
-        id: user.id,
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        phone: phone.trim(),
-      }),
-      supabase
-        .from("riders")
-        .update({
-          vehicle_type: vehicleType,
-          license_plate: plateRequired ? licensePlate.trim() : null,
-        })
-        .eq("id", user.id),
-    ]);
+    const { error: pErr } = await supabase.from("profiles").upsert({
+      id: user.id,
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      phone: phone.trim(),
+    });
     setSaving(false);
 
-    if (pErr || rErr) {
-      console.error("[profile] save error:", pErr?.message ?? rErr?.message);
+    if (pErr) {
+      console.error("[profile] save error:", pErr.message);
       toast.error("บันทึกไม่สำเร็จ — กรุณาลองใหม่");
       return;
     }
     toast.success("บันทึกโปรไฟล์เรียบร้อย");
     await refresh();
     if (!isProfileComplete) {
-      // first time → go to home
       navigate({ to: "/" });
     }
   };
@@ -218,90 +131,40 @@ function ProfilePage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>ยานพาหนะ</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>ประเภท</Label>
-              <Select
-                value={vehicleType}
-                onValueChange={(v) => setVehicleType(v as VehicleType)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกประเภทยานพาหนะ" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="motorcycle">มอเตอร์ไซค์</SelectItem>
-                  <SelectItem value="car">รถยนต์</SelectItem>
-                  <SelectItem value="bicycle">จักรยาน</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {plateRequired && (
-              <div className="space-y-2">
-                <Label htmlFor="license_plate">เลขทะเบียน</Label>
-                <Input
-                  id="license_plate"
-                  value={licensePlate}
-                  onChange={(e) => setLicensePlate(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>การแจ้งเตือน</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <Volume2 className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                <div>
-                  <Label htmlFor="sound-toggle" className="text-base">
-                    เสียงแจ้งเตือนงานใหม่
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    เปิดเสียง "ปี๊บ" เมื่อมีงานใหม่เข้ามา
-                  </p>
-                </div>
-              </div>
-              <Switch
-                id="sound-toggle"
-                checked={soundOn}
-                onCheckedChange={(v) => {
-                  setSoundOn(v);
-                  setNotificationSoundEnabled(v);
-                  if (v) playBeep();
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <ThemeCard />
-
-        <AppVersionCard />
-
         <Button type="submit" disabled={saving} className="w-full">
           {saving ? "กำลังบันทึก..." : "บันทึก"}
         </Button>
       </form>
 
+      <div className="mt-6">
+        <Link
+          to="/settings"
+          className="flex w-full items-center justify-between rounded-lg border bg-background px-4 py-4 transition-colors hover:bg-muted"
+        >
+          <div className="flex items-center gap-3">
+            <Settings className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <div className="text-base font-medium">ตั้งค่า</div>
+              <div className="text-xs text-muted-foreground">
+                เสียงแจ้งเตือน · ธีม · เวอร์ชันแอป
+              </div>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        </Link>
+      </div>
+
       <div className="mt-6 border-t pt-6">
         <Button
           type="button"
           variant="outline"
-          className="w-full"
+          className="w-full gap-2"
           onClick={async () => {
             await supabase.auth.signOut();
             navigate({ to: "/login" });
           }}
         >
+          <LogOut className="h-4 w-4" />
           ออกจากระบบ
         </Button>
         {user?.email && (
@@ -313,4 +176,3 @@ function ProfilePage() {
     </div>
   );
 }
-
